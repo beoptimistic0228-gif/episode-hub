@@ -5,7 +5,11 @@ import { useHub } from './store/useHub';
 
 export default function App() {
   const { init, root, pickRoot } = useHub();
-  useEffect(() => { void init(); }, [init]);
+  useEffect(() => {
+    void init();
+    const off = window.hub.events.onEpisodesChanged(() => { void useHub.getState().refresh(); });
+    return off;
+  }, [init]);
 
   return (
     <div className="layout">

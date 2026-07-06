@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { getRoot, registerIpc } from './ipc';
 import { safeEpisodePath } from './pathGuard';
+import { startWatcher } from './watcher';
 
 // hub://<episodeId>/<relPath> → <root>/output/episodes/<id>/<relPath> (이미지 표시용)
 protocol.registerSchemesAsPrivileged([
@@ -27,15 +28,17 @@ function createWindow() {
   return win;
 }
 
+let stopWatcher: (() => void) | null = null;
+let mainWin: BrowserWindow | null = null;
+
 app.whenReady().then(() => {
   protocol.handle('hub', (request) => {
     const root = getRoot();
     if (!root) return new Response('no root', { status: 404 });
-    // hub://<id>/<relPath...>  (URL 표준화로 host=id)
+    const u = new URL(request.url);
+    const id = u.host;
+    const rel = decodeURIComponent(u.pathname.replace(/^\//, ''));
     try {
-      const u = new URL(request.url);
-      const id = u.host;
-      const rel = decodeURIComponent(u.pathname.replace(/^\//, ''));
       const filePath = safeEpisodePath(root, id, rel);
       return net.fetch(pathToFileURL(filePath).toString());
     } catch {
@@ -43,8 +46,14 @@ app.whenReady().then(() => {
     }
   });
 
-  registerIpc(() => { /* Phase A: watcher는 Task 10에서 이 훅에 연결 */ });
-  createWindow();
+  registerIpc((root) => {
+    stopWatcher?.();
+    stopWatcher = startWatcher(root, () => {
+      mainWin?.webContents.send('episodes:changed');
+    });
+  });
+
+  mainWin = createWindow();
 });
 
 app.on('window-all-closed', () => {
