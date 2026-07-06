@@ -63,6 +63,15 @@ describe('scanEpisodes', () => {
     makeEpisode(root, 'ep20260628_b', GOOD_DOC);
     expect(scanEpisodes(root).map((e) => e.id)).toEqual(['ep20260628_b', 'ep20260601_a']);
   });
+
+  test('레이스 가드 — 폴더 안에 파일이 섞여 있어도 무시하고 통과', () => {
+    mkdirSync(join(root, 'output', 'episodes'), { recursive: true });
+    makeEpisode(root, 'ep20260628_valid', GOOD_DOC);
+    writeFileSync(join(root, 'output', 'episodes', 'stray.txt'), 'not a directory');
+    const list = scanEpisodes(root);
+    expect(list).toHaveLength(1);
+    expect(list[0].id).toBe('ep20260628_valid');
+  });
 });
 
 test('scanEpisodeDetail — 그룹별 FileEntry + mtime 내림차순 + doc 포함', () => {

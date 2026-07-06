@@ -37,9 +37,22 @@ function listGroupFiles(epDir: string, group: GroupKey): FileEntry[] {
   if (!existsSync(dir)) return [];
   const out: FileEntry[] = [];
   const walk = (d: string, prefix: string) => {
-    for (const name of readdirSync(d)) {
+    let entries: string[];
+    try {
+      entries = readdirSync(d);
+    } catch {
+      // 디렉토리 읽기 실패 (권한·삭제 등) — watcher 타이밍 이슈 회피 (§4-6)
+      return;
+    }
+    for (const name of entries) {
       const full = join(d, name);
-      const st = statSync(full);
+      let st;
+      try {
+        st = statSync(full);
+      } catch {
+        // 파일 삭제/잠금 등으로 stat 실패 — 건너뜀 (watcher 레이스 가드)
+        continue;
+      }
       if (st.isDirectory()) {
         walk(full, `${prefix}${name}/`);
       } else {
@@ -56,18 +69,18 @@ function listGroupFiles(epDir: string, group: GroupKey): FileEntry[] {
   return out.sort((a, b) => b.mtimeMs - a.mtimeMs);
 }
 
-function summarize(root: string, id: string): EpisodeSummary {
+function summarize(root: string, id: string, files?: Record<GroupKey, FileEntry[]>): EpisodeSummary {
   const epDir = join(episodesDir(root), id);
   const { doc, error } = loadDoc(epDir);
-  const groupCounts = Object.fromEntries(
-    GROUP_KEYS.map((g) => [g, listGroupFiles(epDir, g).length]),
-  ) as Record<GroupKey, number>;
+  const groupCounts = files
+    ? Object.fromEntries(GROUP_KEYS.map((g) => [g, files[g].length]))
+    : Object.fromEntries(GROUP_KEYS.map((g) => [g, listGroupFiles(epDir, g).length]));
   return {
     id,
     title: doc?.title || id,
     stage: doc?.stage || '',
     ...(error ? { error } : {}),
-    groupCounts,
+    groupCounts: groupCounts as Record<GroupKey, number>,
   };
 }
 
@@ -75,17 +88,24 @@ export function scanEpisodes(root: string): EpisodeSummary[] {
   const dir = episodesDir(root);
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
-    .filter((name) => statSync(join(dir, name)).isDirectory())
+    .filter((name) => {
+      try {
+        return statSync(join(dir, name)).isDirectory();
+      } catch {
+        // stat 실패 (파일 삭제·잠금) — watcher 레이스 가드
+        return false;
+      }
+    })
     .sort((a, b) => b.localeCompare(a)) // ep<YYYYMMDD>_… → 최신 먼저
     .map((id) => summarize(root, id));
 }
 
 export function scanEpisodeDetail(root: string, id: string): EpisodeDetail {
   const epDir = join(episodesDir(root), id);
-  const summary = summarize(root, id);
-  const { doc } = loadDoc(epDir);
   const files = Object.fromEntries(
     GROUP_KEYS.map((g) => [g, listGroupFiles(epDir, g)]),
   ) as Record<GroupKey, FileEntry[]>;
+  const summary = summarize(root, id, files);
+  const { doc } = loadDoc(epDir);
   return { ...summary, doc, files };
 }
