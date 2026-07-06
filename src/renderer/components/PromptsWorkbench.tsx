@@ -10,7 +10,7 @@ function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
-      className="btn-pill secondary sm"
+      className="btn-copy"
       onClick={async () => {
         await navigator.clipboard.writeText(text);
         setCopied(true);
@@ -43,30 +43,27 @@ export default function PromptsWorkbench({ detail }: { detail: EpisodeDetail }) 
 
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
-        <button className={`btn-pill sm ${tab === 'sku' ? 'primary' : 'secondary'}`} onClick={() => setTab('sku')}>
+      <div className="seg">
+        <button className={`seg-btn${tab === 'sku' ? ' active' : ''}`} onClick={() => setTab('sku')}>
           제품 마스터시트 ({sections.length})
-        </button>{' '}
-        <button className={`btn-pill sm ${tab === 'room' ? 'primary' : 'secondary'}`} onClick={() => setTab('room')}>
+        </button>
+        <button className={`seg-btn${tab === 'room' ? ' active' : ''}`} onClick={() => setTab('room')}>
           방 렌더 (Phase 0~5)
         </button>
       </div>
 
       {tab === 'sku' && matched.map(({ s, photo }) => (
-        <div key={s.index} className="group-card" style={{ cursor: 'default', marginBottom: 16, display: 'flex', gap: 16 }}>
+        <div key={s.index} className="sku-card">
           {photo ? (
-            <img src={hubUrl(detail.id, photo.relPath)} alt={s.category}
-                 style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 'var(--r-lg)', flexShrink: 0 }} />
+            <img className="sku-photo" src={hubUrl(detail.id, photo.relPath)} alt={s.category} />
           ) : (
-            <div style={{ width: 120, height: 120, background: 'var(--canvas-cream)', borderRadius: 'var(--r-lg)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                          color: 'var(--ink-mute)', fontSize: 12 }}>사진 없음</div>
+            <div className="sku-photo placeholder">사진 없음</div>
           )}
-          <div style={{ minWidth: 0 }}>
-            <div className="g-label">{s.index}. [{s.category}] {s.model}</div>
+          <div className="sku-body">
+            <div className="sku-title">{s.index}. [{s.category}] {s.model}</div>
             {s.blocks.map((b, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0' }}>
-                <span style={{ fontSize: 13, color: 'var(--ink-mute)', flexShrink: 0 }}>{b.label}</span>
+              <div key={i} className="prompt-row">
+                <span className="prompt-label">{b.label}</span>
                 <CopyButton text={b.text} />
               </div>
             ))}

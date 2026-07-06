@@ -4,7 +4,10 @@ export default function Sidebar() {
   const { episodes, selectedId, select, pickRoot, root } = useHub();
   return (
     <aside className="sidebar">
-      <h1>누구의 공간 · Episode Hub</h1>
+      <h1 className="brand">
+        <span className="brand-name">누구의 공간</span>
+        <span className="brand-sub">Episode Hub</span>
+      </h1>
       <div className="section-label">Episodes</div>
       <nav>
         {episodes.map((ep) => (
@@ -14,7 +17,7 @@ export default function Sidebar() {
             onClick={() => select(ep.id)}
             title={ep.error ?? ep.title}
           >
-            # {ep.title}
+            <span className="ep-hash">#</span> {ep.title}
             {ep.error && <span className="badge-error">⚠</span>}
           </button>
         ))}
@@ -24,11 +27,11 @@ export default function Sidebar() {
       </nav>
       <div className="footer">
         {/* Phase C에서 git 상태 칩으로 교체 — 지금은 루트 표시 + 변경 버튼 */}
-        <div style={{ fontSize: 12, color: 'var(--on-aubergine-mute)', marginBottom: 8, wordBreak: 'break-all' }}>
-          {root ?? 'orchestrator 미연결'}
+        <div className="root-path">{root ?? 'orchestrator 미연결'}</div>
+        <div className="footer-actions">
+          <button className="btn-pill secondary sm" onClick={pickRoot}>폴더 변경</button>
+          <button className="btn-pill secondary sm" disabled title="Phase C에서 활성화">Update</button>
         </div>
-        <button className="btn-pill secondary sm" onClick={pickRoot}>폴더 변경</button>
-        <button className="btn-pill secondary sm" disabled title="Phase C에서 활성화">Update</button>
       </div>
     </aside>
   );

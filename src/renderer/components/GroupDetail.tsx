@@ -36,7 +36,7 @@ export default function GroupDetail({
           )}
           {openMd && <MarkdownView id={detail.id} relPath={openMd.relPath} />}
           {images.length > 0 && (
-            <div className="thumb-grid" style={{ marginTop: 20 }}>
+            <div className="thumb-grid">
               {images.map((f) => (
                 <figure key={f.relPath}>
                   <img src={hubUrl(detail.id, f.relPath)} alt={f.name} loading="lazy" />

@@ -24,7 +24,8 @@ export default function EpisodeView() {
               className={`tab${tab === g.key ? ' active' : ''}${count === 0 ? ' empty' : ''}`}
               onClick={() => setTab(g.key)}
             >
-              {g.emoji} {g.label}
+              <span className="tab-emoji" aria-hidden>{g.emoji}</span>
+              {g.label}
               <span className="tab-count">{count}</span>
             </button>
           );
