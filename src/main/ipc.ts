@@ -2,7 +2,7 @@ import { app, dialog, ipcMain } from 'electron';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadConfig, resolveOrchestratorRoot, saveConfig } from './config';
-import { safeEpisodePath } from './pathGuard';
+import { assertEpisodeId, safeEpisodePath } from './pathGuard';
 import { scanEpisodeDetail, scanEpisodes } from './scanner';
 
 const DEFAULT_ROOT = 'C:\\nakgwan-channel-infra\\orchestrator';
@@ -47,6 +47,7 @@ export function registerIpc(onRootChanged: (root: string) => void): void {
 
   ipcMain.handle('episodes:detail', (_e, id: string) => {
     if (!currentRoot) throw new Error('orchestrator 루트 미설정');
+    assertEpisodeId(id);
     return scanEpisodeDetail(currentRoot, id);
   });
 

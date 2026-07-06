@@ -32,10 +32,10 @@ app.whenReady().then(() => {
     const root = getRoot();
     if (!root) return new Response('no root', { status: 404 });
     // hub://<id>/<relPath...>  (URL 표준화로 host=id)
-    const u = new URL(request.url);
-    const id = u.host;
-    const rel = decodeURIComponent(u.pathname.replace(/^\//, ''));
     try {
+      const u = new URL(request.url);
+      const id = u.host;
+      const rel = decodeURIComponent(u.pathname.replace(/^\//, ''));
       const filePath = safeEpisodePath(root, id, rel);
       return net.fetch(pathToFileURL(filePath).toString());
     } catch {
