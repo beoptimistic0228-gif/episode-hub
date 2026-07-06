@@ -1,26 +1,37 @@
 import { useEffect, useState } from 'react';
-import type { GroupKey } from '@shared/groups';
+import { GROUPS, type GroupKey } from '@shared/groups';
 import EpisodeHeader from './EpisodeHeader';
-import GroupGrid from './GroupGrid';
 import GroupDetail from './GroupDetail';
 import { useHub } from '../store/useHub';
 
 export default function EpisodeView() {
   const { detail } = useHub();
-  const [openGroup, setOpenGroup] = useState<GroupKey | null>(null);
+  const [tab, setTab] = useState<GroupKey>('planning');
 
-  // 에피소드 전환 시 그리드로 복귀
-  useEffect(() => { setOpenGroup(null); }, [detail?.id]);
+  // 에피소드 전환 시 첫 탭(기획)으로 복귀 (Owner 결정 2026-07-07)
+  useEffect(() => { setTab('planning'); }, [detail?.id]);
 
   if (!detail) return <div className="empty-state">에피소드를 선택하세요</div>;
   return (
     <>
       <EpisodeHeader detail={detail} />
-      {openGroup ? (
-        <GroupDetail detail={detail} group={openGroup} onBack={() => setOpenGroup(null)} />
-      ) : (
-        <GroupGrid detail={detail} onOpen={setOpenGroup} />
-      )}
+      <nav className="tab-bar">
+        {GROUPS.map((g) => {
+          const count = detail.groupCounts[g.key];
+          return (
+            <button
+              key={g.key}
+              className={`tab${tab === g.key ? ' active' : ''}${count === 0 ? ' empty' : ''}`}
+              onClick={() => setTab(g.key)}
+            >
+              {g.emoji} {g.label}
+              <span className="tab-count">{count}</span>
+            </button>
+          );
+        })}
+      </nav>
+      {/* key=tab — 탭 전환 시 리마운트로 그룹별 내부 상태(선택 md 등) 초기화 */}
+      <GroupDetail key={tab} detail={detail} group={tab} />
     </>
   );
 }

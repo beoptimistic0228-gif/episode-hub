@@ -50,7 +50,10 @@ body {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .ep-item:hover { background: var(--primary-tint); color: var(--on-primary); }
-.ep-item.selected { background: var(--primary-press); color: var(--on-primary); font-weight: 700; }
+.ep-item.selected {
+  background: var(--primary-press); color: var(--on-primary); font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--on-primary); /* 좌측 선택 바 — 현재 콘텐츠 명확 표시 */
+}
 .ep-item .badge-error { color: #ffb59f; margin-left: 6px; }
 .sidebar .footer { margin-top: auto; padding: 12px 16px; border-top: 1px solid var(--primary-tint); }
 
@@ -78,8 +81,26 @@ body {
 .chip.success { background: var(--success); color: var(--on-primary); }
 .chip.error { background: var(--error); color: var(--on-primary); }
 
-/* ─ 그룹 카드 그리드 ─ */
-.group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+/* ─ 그룹 탭 바 (2026-07-07 Owner 피드백: 카드 그리드 → 탭 전환) ─ */
+.tab-bar {
+  display: flex; flex-wrap: wrap; gap: 2px;
+  border-bottom: 1px solid var(--hairline); margin-bottom: 20px;
+}
+.tab {
+  background: none; border: 0; border-bottom: 3px solid transparent;
+  padding: 10px 14px; font-size: 15px; cursor: pointer;
+  color: var(--ink-mute); display: flex; align-items: center; gap: 6px;
+}
+.tab:hover { background: var(--canvas-lavender); border-radius: var(--r-md) var(--r-md) 0 0; }
+.tab.active { color: var(--ink); font-weight: 700; border-bottom-color: var(--primary); }
+.tab.empty { opacity: 0.45; }
+.tab-count {
+  background: var(--canvas-cream); color: var(--ink-mute);
+  border-radius: var(--r-pill); font-size: 11px; font-weight: 700; padding: 1px 7px;
+}
+.tab.active .tab-count { background: var(--primary); color: var(--on-primary); }
+
+/* group-card — 렌더 작업대 SKU 행이 재사용 (카드 그리드는 탭으로 대체돼 제거) */
 .group-card {
   background: var(--canvas); border: 1px solid var(--hairline); border-radius: var(--r-xl);
   padding: 20px; cursor: pointer; text-align: left;
@@ -90,7 +111,6 @@ body {
 .group-card .g-count { color: var(--ink-mute); font-size: 14px; }
 
 /* ─ 상세(파일 목록·뷰어) ─ */
-.detail-back { color: var(--link-blue); background: none; border: 0; cursor: pointer; font-size: 15px; padding: 0; margin-bottom: 12px; }
 .file-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
 .file-item {
   text-align: left; background: var(--canvas); border: 1px solid var(--hairline);
