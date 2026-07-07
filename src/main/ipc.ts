@@ -1,8 +1,8 @@
-import { app, dialog, ipcMain } from 'electron';
+import { app, dialog, ipcMain, shell } from 'electron';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadConfig, resolveOrchestratorRoot, saveConfig } from './config';
-import { completeEpisode, fetchStatus, pullFF, syncStatus } from './git';
+import { completeEpisode, fetchStatus, pullFF, restoreIfNoTextDiff, syncStatus } from './git';
 import { assertEpisodeId, safeEpisodePath } from './pathGuard';
 import { scanEpisodeDetail, scanEpisodes } from './scanner';
 import { patchEpisode, saveRender, writeText, type EpisodePatch } from './writer';
@@ -58,9 +58,18 @@ export function registerIpc(onRootChanged: (root: string) => void): void {
     return readFileSync(safeEpisodePath(currentRoot, id, relPath), 'utf-8');
   });
 
-  ipcMain.handle('files:writeText', (_e, id: string, relPath: string, content: string, expectedMtimeMs?: number) => {
+  ipcMain.handle('files:writeText', async (_e, id: string, relPath: string, content: string, expectedMtimeMs?: number) => {
     if (!currentRoot) throw new Error('orchestrator 루트 미설정');
-    return writeText(currentRoot, id, relPath, content, expectedMtimeMs);
+    const res = writeText(currentRoot, id, relPath, content, expectedMtimeMs);
+    if ('ok' in res) await restoreIfNoTextDiff(currentRoot, id, relPath); // 내용 원복 시 유령 dirty 제거
+    return res;
+  });
+
+  // 이미지가 있는 폴더를 파일 탐색기에서 연다 (경로 가드 경유)
+  ipcMain.handle('files:showInFolder', (_e, id: string, relPath: string) => {
+    if (!currentRoot) throw new Error('orchestrator 루트 미설정');
+    shell.showItemInFolder(safeEpisodePath(currentRoot, id, relPath));
+    return { ok: true };
   });
 
   ipcMain.handle('renders:save', (_e, id: string, category: string, row: string, bytes: ArrayBuffer, overwrite?: boolean) => {
@@ -68,9 +77,12 @@ export function registerIpc(onRootChanged: (root: string) => void): void {
     return saveRender(currentRoot, id, category, row, new Uint8Array(bytes), overwrite);
   });
 
-  ipcMain.handle('episode:patch', (_e, id: string, patch: EpisodePatch) => {
+  ipcMain.handle('episode:patch', async (_e, id: string, patch: EpisodePatch) => {
     if (!currentRoot) throw new Error('orchestrator 루트 미설정');
-    return patchEpisode(currentRoot, id, patch);
+    const res = patchEpisode(currentRoot, id, patch);
+    // 승인 토글 원복 등으로 내용이 HEAD와 같아지면 유령 dirty(EOL)를 정리 — Complete 비활성 복귀
+    await restoreIfNoTextDiff(currentRoot, id, 'episode.json');
+    return res;
   });
 
   ipcMain.handle('git:sync', (_e, auto: boolean) => {

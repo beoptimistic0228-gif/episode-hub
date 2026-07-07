@@ -117,6 +117,32 @@ export async function syncStatus(orchestratorRoot: string, auto: boolean): Promi
   return s;
 }
 
+/**
+ * 텍스트 diff가 없는데 status만 dirty한 "유령 변경"(EOL 차이)을 index 상태로 복원.
+ * orchestrator(파이썬)는 CRLF, 앱(writer)은 LF로 쓰므로 인앱 변경을 원복해도
+ * 줄끝만 남아 Complete가 계속 활성되는 문제를 막는다. 실제 내용 변경은 건드리지 않는다.
+ * @returns 복원했으면 true
+ */
+export async function restoreIfNoTextDiff(
+  orchestratorRoot: string,
+  episodeId: string,
+  fileRel: string,
+): Promise<boolean> {
+  try {
+    assertEpisodeId(episodeId);
+    const gitRoot = await resolveGitRoot(orchestratorRoot);
+    const rel = `${episodeRelPath(gitRoot, orchestratorRoot, episodeId)}/${fileRel}`;
+    const st = await runGit(gitRoot, ['status', '--porcelain', '--', rel]);
+    if (!st.stdout.trim()) return false; // 변경 없음
+    const diff = await runGit(gitRoot, ['diff', '--quiet', '--', rel]);
+    if (diff.code !== 0) return false; // 실제 내용 변경 → 보존
+    const co = await runGit(gitRoot, ['checkout', '--', rel]);
+    return co.code === 0;
+  } catch {
+    return false; // git 없음 등 — 복원은 best-effort
+  }
+}
+
 export type CompleteResult =
   | { ok: true; pushed: true }
   | { ok: false; reason: 'nothing' | 'needsUpdate' | 'error'; message?: string };
