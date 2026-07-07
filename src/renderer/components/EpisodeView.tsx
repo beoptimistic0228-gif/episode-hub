@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { GROUPS, type GroupKey } from '@shared/groups';
+import { APPROVAL_GATES, STAGES } from '@shared/episode';
 import EpisodeHeader from './EpisodeHeader';
 import GroupDetail from './GroupDetail';
 import { useHub } from '../store/useHub';
 
 export default function EpisodeView() {
-  const { detail } = useHub();
+  const { detail, patchEpisode } = useHub();
   const [tab, setTab] = useState<GroupKey>('planning');
 
   // 에피소드 전환 시 첫 탭(기획)으로 복귀 (Owner 결정 2026-07-07)
@@ -15,6 +16,28 @@ export default function EpisodeView() {
   return (
     <>
       <EpisodeHeader detail={detail} />
+      <div className="approval-strip">
+        {APPROVAL_GATES.map((g) => {
+          const on = detail.doc?.approvals?.[g.key]?.approved === true;
+          return (
+            <button
+              key={g.key}
+              className={`gate-chip${on ? ' on' : ''}`}
+              onClick={() => patchEpisode(on ? { unapprove: { key: g.key } } : { approve: { key: g.key } })}
+            >
+              {on ? '✓ ' : ''}{g.label}
+            </button>
+          );
+        })}
+        <select
+          className="stage-select"
+          value={detail.stage || ''}
+          onChange={(e) => patchEpisode({ stage: e.target.value })}
+        >
+          <option value="" disabled>단계 선택</option>
+          {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
       <nav className="tab-bar">
         {GROUPS.map((g) => {
           const count = detail.groupCounts[g.key];

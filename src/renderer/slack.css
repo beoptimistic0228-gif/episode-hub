@@ -292,3 +292,11 @@ body {
   border: 1.5px dashed #cfcfcf; border-radius: 10px; cursor: default; user-select: none;
 }
 .dropzone.filled { color: var(--success, #17754a); border-color: var(--success, #17754a); border-style: solid; }
+
+.approval-strip { display: flex; gap: 8px; align-items: center; margin: 4px 0 16px; flex-wrap: wrap; }
+.gate-chip {
+  padding: 5px 12px; font-size: 12px; border-radius: 999px; cursor: pointer;
+  border: 1px solid #d0d0d0; background: #fff; color: #555;
+}
+.gate-chip.on { background: var(--success, #17754a); border-color: var(--success, #17754a); color: #fff; }
+.stage-select { margin-left: auto; padding: 5px 10px; font-size: 12px; border-radius: 8px; border: 1px solid #d0d0d0; }
