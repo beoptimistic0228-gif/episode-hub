@@ -1,8 +1,23 @@
 import { execFile } from 'node:child_process';
+import { realpathSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { promisify } from 'node:util';
+import { assertEpisodeId } from './pathGuard';
 
 const pexec = promisify(execFile);
+
+/**
+ * 경로를 OS 정규 실경로로 변환. Windows에서 `git rev-parse --show-toplevel`은
+ * 긴 형식(`C:/Users/jin.choi/…`)을 반환하지만 tmpdir 등은 8.3 단축명
+ * (`C:/Users/JIN~1.CHO/…`)을 쓸 수 있다. 두 형식을 맞추지 않으면 relative() 계산이
+ * 어긋나 `git add`가 'outside repository'로 거부된다. 존재하지 않으면 원본을 반환. */
+function canonicalPath(p: string): string {
+  try {
+    return realpathSync.native(p);
+  } catch {
+    return p;
+  }
+}
 
 export interface GitStatus {
   state: 'clean' | 'behind' | 'ahead' | 'diverged' | 'error';
@@ -38,8 +53,8 @@ export async function resolveGitRoot(orchestratorRoot: string): Promise<string> 
 
 /** git-root-relative POSIX 경로 (Complete add 경로용) */
 export function episodeRelPath(gitRoot: string, orchestratorRoot: string, episodeId: string): string {
-  const abs = join(orchestratorRoot, 'output', 'episodes', episodeId);
-  return relative(gitRoot, abs).split(sep).join('/');
+  const abs = join(canonicalPath(orchestratorRoot), 'output', 'episodes', episodeId);
+  return relative(canonicalPath(gitRoot), abs).split(sep).join('/');
 }
 
 export async function fetchStatus(orchestratorRoot: string, doFetch = true): Promise<GitStatus> {
@@ -100,4 +115,31 @@ export async function syncStatus(orchestratorRoot: string, auto: boolean): Promi
     if (p.ok) s = await fetchStatus(orchestratorRoot, false);
   }
   return s;
+}
+
+export type CompleteResult =
+  | { ok: true; pushed: true }
+  | { ok: false; reason: 'nothing' | 'needsUpdate' | 'error'; message?: string };
+
+/** 해당 EP 폴더만 add→commit→push. 이미지는 gitignore로 자동 제외. */
+export async function completeEpisode(orchestratorRoot: string, episodeId: string): Promise<CompleteResult> {
+  assertEpisodeId(episodeId);
+  const gitRoot = await resolveGitRoot(orchestratorRoot);
+  const rel = episodeRelPath(gitRoot, orchestratorRoot, episodeId);
+  const add = await runGit(gitRoot, ['add', '--', rel]);
+  if (add.code !== 0) return { ok: false, reason: 'error', message: add.stderr.trim() };
+  // 스테이지에 대상 경로 변경이 있는지 (exit 0 = 변경 없음)
+  const staged = await runGit(gitRoot, ['diff', '--cached', '--quiet', '--', rel]);
+  if (staged.code === 0) return { ok: false, reason: 'nothing' };
+  const commit = await runGit(gitRoot, ['commit', '-m', `feat(orchestrator): ${episodeId} 산출물 완료 (Episode Hub)`, '--', rel]);
+  if (commit.code !== 0) return { ok: false, reason: 'error', message: commit.stderr.trim() };
+  const push = await runGit(gitRoot, ['push']);
+  if (push.code !== 0) {
+    const m = push.stderr || push.stdout;
+    if (/rejected|fetch first|non-fast-forward/i.test(m)) {
+      return { ok: false, reason: 'needsUpdate', message: '원격이 앞서 있습니다. Update 먼저 눌러주세요.' };
+    }
+    return { ok: false, reason: 'error', message: m.trim() };
+  }
+  return { ok: true, pushed: true };
 }
