@@ -79,7 +79,7 @@ test.beforeAll(async () => {
   writeFileSync(join(epDir, 'script', '콘티.md'), '# 콘티\n\n본문\n');
   writeFileSync(
     join(epDir, 'prompts', 'master_sheets_prompts.md'),
-    '## 1. [책상] X\n\n**Row1**\n\n```\nprompt text\n```\n',
+    '## 1. [책상] X\n\n### Row 1 — 4각도 컷 (정면·45도·측면·탑뷰)\n\n**영문 (Gemini·ChatGPT·Higgsfield)**\n\n```\nprompt text\n```\n',
   );
   writeFileSync(join(epDir, 'products', '책상_p.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
 
@@ -168,7 +168,7 @@ test('④ 렌더 드롭 저장(IPC 직접): renders/책상__row1.png가 디스�
   await page.reload();
   await page.waitForSelector('.sidebar');
   await page.locator('nav.tab-bar button', { hasText: '렌더 프롬프트' }).click();
-  await expect(page.locator('.dropzone.filled')).toContainText('row1 생성됨');
+  await expect(page.locator('.dropzone.filled')).toContainText('4각도 컷 이미지 저장됨');
 
   await page.screenshot({ path: join(test.info().outputDir, 'phase-b-final.png') });
 });

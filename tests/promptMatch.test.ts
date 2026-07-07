@@ -43,6 +43,44 @@ test('parseMasterSheet — SKU 패턴 없는 md는 빈 배열', () => {
   expect(parseMasterSheet('# 방 렌더\n\n본문')).toEqual([]);
 });
 
+const MD_ROWS = `# 마스터시트
+
+## 1. [책상] 직사각형 학생용 책상
+
+### Row 1 — 4각도 컷 (정면·45도·측면·탑뷰)
+
+**영문 (Gemini·ChatGPT·Higgsfield)**
+
+\`\`\`
+four views
+\`\`\`
+
+**한글 (Gemini · ChatGPT)**
+
+\`\`\`
+4각도
+\`\`\`
+
+### Row 2 — 재질·라이팅 클로즈업
+
+**영문**
+
+\`\`\`
+macro close-up
+\`\`\`
+`;
+
+test('parseMasterSheet — Row 헤딩 맥락을 블록에 싣는다 (row 키 + rowTitle)', () => {
+  const secs = parseMasterSheet(MD_ROWS);
+  expect(secs).toHaveLength(1);
+  const b = secs[0].blocks;
+  expect(b).toHaveLength(3);
+  expect(b[0]).toMatchObject({ row: 'row1', rowTitle: '4각도 컷' });
+  expect(b[0].label).toContain('영문');
+  expect(b[1]).toMatchObject({ row: 'row1', rowTitle: '4각도 컷' });
+  expect(b[2]).toMatchObject({ row: 'row2', rowTitle: '재질·라이팅 클로즈업' });
+});
+
 const img = (name: string): FileEntry =>
   ({ name, relPath: `products/${name}`, kind: 'image', mtimeMs: 0 });
 

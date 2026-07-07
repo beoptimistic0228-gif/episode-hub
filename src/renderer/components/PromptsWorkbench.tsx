@@ -89,24 +89,58 @@ export default function PromptsWorkbench({ detail }: { detail: EpisodeDetail }) 
           )}
           <div className="sku-body">
             <div className="sku-title">{s.index}. [{s.category}] {s.model}</div>
-            {s.blocks.map((b, i) => (
-              <div key={i} className="prompt-row">
-                <span className="prompt-label">{b.label}</span>
-                <CopyButton text={b.text} />
-              </div>
-            ))}
-            <div className="drop-row">
-              {RENDER_ROWS.map((r) => (
-                <div
-                  key={r}
-                  className={`dropzone${hasRender(s.category, r) ? ' filled' : ''}`}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => onDrop(s.category, r, e)}
-                >
-                  {hasRender(s.category, r) ? `✓ ${r} 생성됨` : `${r} 이미지 드롭`}
+            {RENDER_ROWS.map((row, ri) => {
+              const blocks = s.blocks.filter((b) => b.row === row);
+              if (blocks.length === 0) return null;
+              const title = blocks[0].rowTitle ?? row;
+              const purpose = row === 'row1' ? '제품 식별용 4각도 시트' : '콘티 배치용 재질·무드 클로즈업';
+              return (
+                <div key={row} className="row-group">
+                  <div className="row-group-title">
+                    {ri === 0 ? '①' : '②'} {title}
+                    <span className="row-group-sub">{purpose}</span>
+                  </div>
+                  {blocks.map((b, i) => (
+                    <div key={i} className="prompt-row">
+                      <span className="prompt-label">{b.label}</span>
+                      <CopyButton text={b.text} />
+                    </div>
+                  ))}
+                  <div
+                    className={`dropzone${hasRender(s.category, row) ? ' filled' : ''}`}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => onDrop(s.category, row, e)}
+                  >
+                    {hasRender(s.category, row)
+                      ? `✓ ${title} 이미지 저장됨`
+                      : `생성한 ${title} 이미지를 여기에 드롭하면 저장돼요`}
+                  </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
+            {/* 옛 포맷(Row 헤딩 없는 md) 폴백 — 평평한 목록 + 공용 드롭존 */}
+            {s.blocks.every((b) => !b.row) && (
+              <>
+                {s.blocks.map((b, i) => (
+                  <div key={i} className="prompt-row">
+                    <span className="prompt-label">{b.label}</span>
+                    <CopyButton text={b.text} />
+                  </div>
+                ))}
+                <div className="drop-row">
+                  {RENDER_ROWS.map((r) => (
+                    <div
+                      key={r}
+                      className={`dropzone${hasRender(s.category, r) ? ' filled' : ''}`}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => onDrop(s.category, r, e)}
+                    >
+                      {hasRender(s.category, r) ? `✓ ${r} 저장됨` : `${r} 이미지 드롭`}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       ))}
