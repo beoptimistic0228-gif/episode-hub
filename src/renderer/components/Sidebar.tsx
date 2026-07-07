@@ -1,4 +1,5 @@
 import { useHub } from '../store/useHub';
+import bannerImg from '../assets/brand-banner.png';
 
 export default function Sidebar() {
   const { episodes, selectedId, select, pickRoot, root, gitStatus, gitPull } = useHub();
@@ -14,7 +15,7 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <h1 className="brand">
-        <span className="brand-name">누구의 공간</span>
+        <img className="brand-banner" src={bannerImg} alt="누구의 공간" />
         <span className="brand-sub">Episode Hub</span>
       </h1>
       <div className="section-label">Episodes</div>

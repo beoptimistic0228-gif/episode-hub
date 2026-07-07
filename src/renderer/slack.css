@@ -75,13 +75,15 @@ body {
   display: flex; flex-direction: column;
   padding: 18px 0 14px;
 }
-.sidebar .brand { padding: 0 18px 16px; }
-.sidebar .brand-name {
-  display: block; font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
+.sidebar .brand { padding: 0 14px 14px; }
+.sidebar .brand-banner {
+  display: block; width: 100%; border-radius: var(--r-lg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 .sidebar .brand-sub {
   display: block; font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em;
-  text-transform: uppercase; color: var(--on-dark-mute); margin-top: 2px;
+  text-transform: uppercase; color: var(--on-dark-mute); margin-top: 6px;
+  padding-left: 4px;
 }
 .sidebar .section-label {
   font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em;

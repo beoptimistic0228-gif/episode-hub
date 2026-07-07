@@ -14,6 +14,8 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
     height: 900,
+    // 패키징 후에는 exe에 임베드된 아이콘이 적용된다(build/는 asar 미포함) — dev 창 아이콘만 지정
+    ...(app.isPackaged ? {} : { icon: join(__dirname, '../../build/icon.png') }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,

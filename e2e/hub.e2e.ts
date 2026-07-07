@@ -112,6 +112,12 @@ test.afterAll(async () => {
 test('① 부팅: 페이지 에러 없이 뜨고 사이드바에 fixture 에피소드가 보인다', async () => {
   // 루트 연결 성공 시 사이드바에 episode.json title이 표시된다.
   await expect(page.locator('.sidebar')).toContainText('E2E 룸');
+  // 브랜드 배너가 사이드바 최상단에 실제 로드된다 (깨진 이미지 방지: naturalWidth > 0)
+  await expect(page.locator('img.brand-banner')).toBeVisible();
+  const bannerW = await page
+    .locator('img.brand-banner')
+    .evaluate((el) => (el as HTMLImageElement).naturalWidth);
+  expect(bannerW).toBeGreaterThan(0);
   expect(pageErrors, '시작 시 uncaught 에러').toEqual([]);
 });
 
