@@ -4,8 +4,6 @@ import { useHub } from '../store/useHub';
 
 export default function EpisodeHeader({ detail }: { detail: EpisodeDetail }) {
   const est = detail.doc?.total_estimate;
-  const skuCount = detail.doc?.products?.length ?? 0;
-  const moodboard = detail.doc?.approvals?.['moodboard'] as { approved?: boolean } | undefined;
 
   const { gitStatus, completeEpisode } = useHub();
   const [busy, setBusy] = useState(false);
@@ -34,11 +32,8 @@ export default function EpisodeHeader({ detail }: { detail: EpisodeDetail }) {
       <div className="ep-heading">
         <h2>{detail.title}</h2>
         <div className="ep-meta">
-          <span className="chip">{detail.id}</span>
-          {detail.stage && <span className="chip">{detail.stage} 단계</span>}
-          {est && <span className="chip">₩{est.low.toLocaleString()}</span>}
-          {skuCount > 0 && <span className="chip">{skuCount} SKU</span>}
-          {moodboard?.approved && <span className="chip success">무드보드 승인</span>}
+          {/* 기획 견적만 강조 노출 (2026-07-07 Owner 피드백: id·단계·SKU 칩 제거) */}
+          {est && <span className="price-tag">₩{est.low.toLocaleString()}</span>}
           {detail.error && <span className="chip error">{detail.error}</span>}
         </div>
       </div>

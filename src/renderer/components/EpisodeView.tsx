@@ -49,7 +49,6 @@ export default function EpisodeView() {
             >
               <span className="tab-emoji" aria-hidden>{g.emoji}</span>
               {g.label}
-              <span className="tab-count">{count}</span>
             </button>
           );
         })}

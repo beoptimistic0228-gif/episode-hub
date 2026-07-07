@@ -161,6 +161,12 @@ body {
 }
 .chip.success { background: var(--success-tint); color: var(--success); }
 .chip.error { background: var(--error-tint); color: var(--error); }
+/* 기획 견적 — 헤더 메타에서 유일하게 강조되는 정보 */
+.price-tag {
+  display: inline-block; background: var(--success-tint); color: var(--success);
+  font-size: 15px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.4;
+  border-radius: var(--r-pill); padding: 4px 14px;
+}
 
 /* ─ 그룹 탭 바 — sticky: 헤더는 스크롤아웃, 탭은 상주 ─ */
 .tab-bar {
@@ -190,13 +196,6 @@ body {
 /* 이모지: 평상시 무채색 → hover·active에 컬러 (조용한 시그니처) */
 .tab .tab-emoji { filter: grayscale(1); opacity: 0.55; transition: filter var(--ease), opacity var(--ease); }
 .tab:hover .tab-emoji, .tab.active .tab-emoji { filter: none; opacity: 1; }
-.tab-count {
-  background: var(--surface-tint); color: var(--ink-faint);
-  border-radius: var(--r-pill); font-size: 10.5px; font-weight: 700;
-  padding: 1px 6px; min-width: 18px; text-align: center;
-  transition: background var(--ease), color var(--ease);
-}
-.tab.active .tab-count { background: var(--brand-tint); color: var(--brand); }
 
 /* ─ 상세(파일 목록·뷰어) ─ */
 .file-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
@@ -258,6 +257,8 @@ body {
   padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow-sm);
 }
 .sku-photo { width: 104px; height: 104px; object-fit: cover; border-radius: var(--r-lg); flex-shrink: 0; }
+.sku-photo.clickable { cursor: pointer; transition: box-shadow var(--ease); }
+.sku-photo.clickable:hover { box-shadow: 0 0 0 2px var(--brand); }
 .sku-photo.placeholder {
   background: var(--surface-tint); color: var(--ink-faint); font-size: 11.5px;
   display: flex; align-items: center; justify-content: center;

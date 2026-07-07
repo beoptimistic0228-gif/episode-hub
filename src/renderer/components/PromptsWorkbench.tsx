@@ -77,7 +77,13 @@ export default function PromptsWorkbench({ detail }: { detail: EpisodeDetail }) 
       {tab === 'sku' && matched.map(({ s, photo }) => (
         <div key={s.index} className="sku-card">
           {photo ? (
-            <img className="sku-photo" src={hubUrl(detail.id, photo.relPath)} alt={s.category} />
+            <img
+              className="sku-photo clickable"
+              src={hubUrl(detail.id, photo.relPath)}
+              alt={s.category}
+              title="클릭하면 이미지 폴더가 열려요"
+              onClick={() => window.hub.files.showInFolder(detail.id, photo.relPath)}
+            />
           ) : (
             <div className="sku-photo placeholder">사진 없음</div>
           )}

@@ -17,6 +17,8 @@ const api = {
       ipcRenderer.invoke('files:readText', id, relPath),
     writeText: (id: string, relPath: string, content: string, expectedMtimeMs?: number): Promise<WriteTextResult> =>
       ipcRenderer.invoke('files:writeText', id, relPath, content, expectedMtimeMs),
+    showInFolder: (id: string, relPath: string): Promise<{ ok: true }> =>
+      ipcRenderer.invoke('files:showInFolder', id, relPath),
   },
   renders: {
     save: (id: string, category: string, row: string, bytes: ArrayBuffer, overwrite?: boolean): Promise<SaveRenderResult> =>
