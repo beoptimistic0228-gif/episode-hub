@@ -306,3 +306,5 @@ body {
 .git-chip.info { background: rgba(29,120,215,0.12); color: #1d78d7; }
 .git-chip.warn { background: #fff8e1; color: #8a6d00; }
 .git-chip.err { background: var(--error-tint, rgba(211,47,47,0.12)); color: var(--error, #d32f2f); }
+
+.complete-note { font-size: 12px; color: #555; margin-left: 8px; align-self: center; }
