@@ -1,5 +1,23 @@
 import type { GroupKey } from '@shared/groups';
-import claudeIcon from '../assets/claude-code.svg';
+import iconBase from '../assets/agents/claude-code.png';
+import iconPlanning from '../assets/agents/planning.png';
+import iconProducts from '../assets/agents/products.png';
+import iconPrompts from '../assets/agents/prompts.png';
+import iconRenders from '../assets/agents/renders.png';
+import iconScript from '../assets/agents/script.png';
+import iconPublish from '../assets/agents/publish.png';
+
+/** 역할별 커스텀 캐릭터 (ChatGPT 생성, 2026-07-08) — 미생성분은 베이스 아이콘 폴백 */
+const ICONS: Record<GroupKey, string> = {
+  planning: iconPlanning,
+  products: iconProducts,
+  prompts: iconPrompts,
+  renders: iconRenders,
+  script: iconScript,
+  publish: iconPublish,
+  validation: iconBase,
+  manuscript: iconBase,
+};
 
 /** 탭(단계)별 담당 에이전트 소개 — 비개발자 Owner용 한 줄 안내 (2026-07-07 Owner 요청) */
 const CALLOUTS: Record<GroupKey, { agent: string; role: string }> = {
@@ -41,7 +59,7 @@ export default function AgentCallout({ group }: { group: GroupKey }) {
   const c = CALLOUTS[group];
   return (
     <div className="agent-callout">
-      <img className="agent-avatar" src={claudeIcon} alt="담당 에이전트" />
+      <img className="agent-avatar" src={ICONS[group]} alt="담당 에이전트" />
       <div className="agent-bubble">
         <div className="agent-name">{c.agent}</div>
         <div className="agent-role">{c.role}</div>
