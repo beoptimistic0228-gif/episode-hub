@@ -2,6 +2,7 @@
   "name": "episode-hub",
   "version": "0.1.0",
   "description": "Episode Hub — 누구의 공간 산출물 에피소드별 관리 데스크톱 앱",
+  "author": "nakgwan",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -10,7 +11,36 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "test:e2e": "npm run build && playwright test"
+    "test:e2e": "npm run build && playwright test",
+    "dist": "electron-vite build && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.nakgwan.episode-hub",
+    "productName": "Episode Hub",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**",
+      "!**/*.map"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "shortcutName": "Episode Hub",
+      "artifactName": "EpisodeHub-Setup-${version}.${ext}"
+    }
   },
   "dependencies": {
     "chokidar": "^3.6.0",
@@ -24,6 +54,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "electron": "^31.7.7",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^2.3.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
