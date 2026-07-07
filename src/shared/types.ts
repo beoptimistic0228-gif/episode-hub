@@ -1,5 +1,5 @@
 import type { GroupKey } from './groups';
-import type { ApprovalRecord } from './episode';
+import type { ApprovalRecord, Publication } from './episode';
 
 export interface HubConfig { orchestratorRoot: string }
 
@@ -19,6 +19,7 @@ export interface EpisodeDoc {
   approvals: Record<string, ApprovalRecord>;
   total_estimate?: { low: number; high: number; label: string };
   products?: ProductItem[];
+  publications?: Publication[];
 }
 
 export interface EpisodeSummary {
@@ -28,13 +29,17 @@ export interface EpisodeSummary {
   /** episode.json 파싱 실패·schema_version 불일치 시 사유 (카드에 오류 배지) */
   error?: string;
   groupCounts: Record<GroupKey, number>;
+  /** 대시보드용 — 발행 기록·게이트 상태·견적 (Phase D) */
+  publications: Publication[];
+  approvals: Record<string, boolean>;
+  estimateLow?: number;
 }
 
 export interface FileEntry {
   name: string;
   /** episodes/<id>/ 기준 상대경로 (POSIX 구분자) */
   relPath: string;
-  kind: 'md' | 'image' | 'json' | 'other';
+  kind: 'md' | 'image' | 'json' | 'video' | 'other';
   mtimeMs: number;
 }
 

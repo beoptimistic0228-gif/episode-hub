@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { safeEpisodePath } from './pathGuard';
-import { normCategory, RENDER_ROWS } from '@shared/episode';
+import { normCategory, PLATFORMS, RENDER_ROWS, type Publication } from '@shared/episode';
 import type { EpisodeDoc } from '@shared/types';
 
 export type WriteTextResult =
@@ -69,6 +69,8 @@ export function saveRender(
 export interface EpisodePatch {
   approve?: { key: string };
   unapprove?: { key: string };
+  addPublication?: Omit<Publication, 'at'>;
+  removePublication?: { index: number };
 }
 
 /** episode.json 부분 병합(read-modify-write). schema_version 가드. 파일 없으면 골격 생성. */
@@ -94,6 +96,20 @@ export function patchEpisode(
   }
   if (patch.unapprove) {
     delete doc.approvals[patch.unapprove.key];
+  }
+  if (patch.addPublication) {
+    const p = patch.addPublication;
+    if (!PLATFORMS.some((x) => x.key === p.platform)) {
+      throw new Error(`지원하지 않는 platform: ${p.platform}`);
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(p.date)) {
+      throw new Error(`date는 YYYY-MM-DD 형식이어야 합니다: ${p.date}`);
+    }
+    if (!doc.publications) doc.publications = [];
+    doc.publications.push({ ...p, at: new Date().toISOString() });
+  }
+  if (patch.removePublication) {
+    doc.publications?.splice(patch.removePublication.index, 1);
   }
 
   atomicWrite(full, JSON.stringify(doc, null, 2));

@@ -37,6 +37,24 @@ describe('patchEpisode', () => {
     expect(() => patchEpisode(root, id, { approve: { key: 'moodboard' } })).toThrow(/schema_version/);
   });
 
+  test('addPublication → publications 배열에 누적, removePublication → 해당 index 삭제', () => {
+    const id = ep(root, BASE);
+    const r1 = patchEpisode(root, id, { addPublication: { platform: 'youtube', date: '2026-07-08', url: 'https://youtu.be/x' } });
+    expect(r1.doc.publications).toHaveLength(1);
+    expect(r1.doc.publications?.[0]).toMatchObject({ platform: 'youtube', date: '2026-07-08', url: 'https://youtu.be/x' });
+    const r2 = patchEpisode(root, id, { addPublication: { platform: 'blog', date: '2026-07-09' } });
+    expect(r2.doc.publications).toHaveLength(2);
+    const r3 = patchEpisode(root, id, { removePublication: { index: 0 } });
+    expect(r3.doc.publications).toHaveLength(1);
+    expect(r3.doc.publications?.[0].platform).toBe('blog');
+  });
+
+  test('addPublication — 잘못된 platform·날짜 형식은 throw', () => {
+    const id = ep(root, BASE);
+    expect(() => patchEpisode(root, id, { addPublication: { platform: 'tiktok', date: '2026-07-08' } as never })).toThrow(/platform/);
+    expect(() => patchEpisode(root, id, { addPublication: { platform: 'blog', date: '07/08' } })).toThrow(/date/);
+  });
+
   test('episode.json 부재 → 골격 생성 후 패치', () => {
     const id = ep(root); // 파일 없음
     const { doc } = patchEpisode(root, id, { approve: { key: 'script_final' } });

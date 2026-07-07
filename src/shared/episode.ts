@@ -19,6 +19,24 @@ export const STAGES = [
   '생성', '제작', '검수', '발행대기', '완료',
 ] as const;
 
+// 발행 플랫폼 (Phase D — 발행 기록·대시보드 집계·달력 색상의 단일 출처)
+// 배열 순서 = 화면 렌더(인접) 순서 — dataviz 검증기 ALL PASS 조합 (CVD·대비, 2026-07-08)
+export const PLATFORMS = [
+  { key: 'youtube', label: '유튜브 본편', color: '#ea4f23' },
+  { key: 'blog', label: '블로그', color: '#246d38' },
+  { key: 'instagram', label: '인스타', color: '#b465a6' },
+  { key: 'shorts', label: '쇼츠', color: '#8f8412' },
+  { key: 'threads', label: '쓰레드', color: '#2e6fa7' },
+] as const;
+export type PlatformKey = (typeof PLATFORMS)[number]['key'];
+
+export interface Publication {
+  platform: PlatformKey;
+  date: string; // YYYY-MM-DD
+  url?: string;
+  at?: string; // 기록 시각 (ISO)
+}
+
 /** 카테고리 정규화 — 렌더 파일명·사진 매칭 공통 규칙 (공백→_ + trim) */
 export function normCategory(s: string): string {
   return s.trim().replace(/\s+/g, '_');

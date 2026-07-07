@@ -74,6 +74,32 @@ describe('scanEpisodes', () => {
   });
 });
 
+test('classifyKind — 비디오 확장자 → video', () => {
+  expect(classifyKind('youtube_full.mp4')).toBe('video');
+  expect(classifyKind('reels.MOV')).toBe('video');
+  expect(classifyKind('clip.webm')).toBe('video');
+  expect(classifyKind('a.md')).toBe('md');
+});
+
+test('scanEpisodes — final·osmu 그룹 카운트 포함 + 요약에 발행·게이트·견적', () => {
+  const root = mkdtempSync(join(tmpdir(), 'scan-f-'));
+  const ep = makeEpisode(root, 'ep20260628_test', {
+    ...GOOD_DOC,
+    publications: [{ platform: 'youtube', date: '2026-07-08' }],
+  });
+  mkdirSync(join(ep, 'final'), { recursive: true });
+  writeFileSync(join(ep, 'final', 'full.mp4'), 'x');
+  mkdirSync(join(ep, 'osmu'), { recursive: true });
+  writeFileSync(join(ep, 'osmu', 'blog_1.md'), '# b');
+  const s = scanEpisodes(root)[0];
+  expect(s.groupCounts.final).toBe(1);
+  expect(s.groupCounts.osmu).toBe(1);
+  expect(s.publications).toEqual([{ platform: 'youtube', date: '2026-07-08' }]);
+  expect(s.approvals).toMatchObject({ moodboard: true });
+  expect(s.estimateLow).toBe(667250);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test('scanEpisodeDetail — _deprecated 하위 파일은 목록·카운트에서 제외', () => {
   const root = mkdtempSync(join(tmpdir(), 'scan-x-'));
   const ep = makeEpisode(root, 'ep20260628_test', GOOD_DOC);

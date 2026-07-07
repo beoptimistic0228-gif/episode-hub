@@ -1,6 +1,7 @@
 export type GroupKey =
   | 'planning' | 'products' | 'prompts' | 'renders'
-  | 'script' | 'publish' | 'validation' | 'manuscript';
+  | 'script' | 'publish' | 'validation' | 'manuscript'
+  | 'final' | 'osmu';
 
 export interface GroupDef { key: GroupKey; emoji: string; label: string }
 
@@ -14,6 +15,8 @@ export const GROUPS: readonly GroupDef[] = [
   { key: 'publish',    emoji: '📢', label: '발행' },
   { key: 'validation', emoji: '✅', label: '검증' },
   { key: 'manuscript', emoji: '📜', label: '통합 원고' },
+  { key: 'final',      emoji: '🎞️', label: '최종 영상' },
+  { key: 'osmu',       emoji: '📤', label: 'OSMU' },
 ] as const;
 
 export const GROUP_KEYS = GROUPS.map((g) => g.key) as GroupKey[];

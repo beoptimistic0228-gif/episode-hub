@@ -9,6 +9,7 @@ export function classifyKind(name: string): FileEntry['kind'] {
   if (/\.md$/i.test(name)) return 'md';
   if (IMAGE_EXT.test(name)) return 'image';
   if (/\.json$/i.test(name)) return 'json';
+  if (/\.(mp4|mov|webm|m4v)$/i.test(name)) return 'video';
   return 'other';
 }
 
@@ -82,6 +83,12 @@ function summarize(root: string, id: string, files?: Record<GroupKey, FileEntry[
     stage: doc?.stage || '',
     ...(error ? { error } : {}),
     groupCounts: groupCounts as Record<GroupKey, number>,
+    // 대시보드용 요약 (Phase D) — 발행 기록·게이트 boolean·견적
+    publications: doc?.publications ?? [],
+    approvals: Object.fromEntries(
+      Object.entries(doc?.approvals ?? {}).map(([k, v]) => [k, v?.approved === true]),
+    ),
+    ...(doc?.total_estimate?.low !== undefined ? { estimateLow: doc.total_estimate.low } : {}),
   };
 }
 

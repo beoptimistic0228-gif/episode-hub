@@ -17,6 +17,8 @@ const ICONS: Record<GroupKey, string> = {
   publish: iconPublish,
   validation: iconBase,
   manuscript: iconBase,
+  final: iconBase,
+  osmu: iconBase,
 };
 
 /** 탭(단계)별 담당 에이전트 소개 — 비개발자 Owner용 한 줄 안내 (2026-07-07 Owner 요청) */
@@ -52,6 +54,14 @@ const CALLOUTS: Record<GroupKey, { agent: string; role: string }> = {
   manuscript: {
     agent: 'Agent 13 · Manuscript Compiler',
     role: '전 단계 산출물을 촬영·녹음용 통합 제작 원고 한 편으로 취합해요. 파이프라인의 종착지!',
+  },
+  final: {
+    agent: '최종 영상 보관함 (Owner 편집 완성본)',
+    role: '편집 끝난 유튜브 본편·릴스·썸네일 클립을 이 에피소드의 final 폴더에 넣으면 여기서 바로 재생돼요.',
+  },
+  osmu: {
+    agent: 'OSMU 변환 담당',
+    role: '본편을 블로그 글·쓰레드·인스타 캡션으로 변환한 텍스트가 모여요. 발행하면 발행 탭에서 기록해 주세요!',
   },
 };
 

@@ -72,6 +72,19 @@ export function registerIpc(onRootChanged: (root: string) => void): void {
     return { ok: true };
   });
 
+  // SNS 채널 열기 — URL은 main에 고정(임의 URL 열기 차단, Phase D 스펙 §5)
+  const SNS_LINKS: Record<string, string> = {
+    youtube: 'https://youtube.com/channel/UCqMBCXReIpCPa4PzWiT2grw',
+    instagram: 'https://www.instagram.com/beoptimistic.official/',
+    blog: 'https://blog.naver.com/be_optimistic228',
+  };
+  ipcMain.handle('links:open', (_e, kind: string) => {
+    const url = SNS_LINKS[kind];
+    if (!url) throw new Error(`알 수 없는 링크: ${kind}`);
+    void shell.openExternal(url);
+    return { ok: true };
+  });
+
   ipcMain.handle('renders:save', (_e, id: string, category: string, row: string, bytes: ArrayBuffer, overwrite?: boolean) => {
     if (!currentRoot) throw new Error('orchestrator 루트 미설정');
     return saveRender(currentRoot, id, category, row, new Uint8Array(bytes), overwrite);

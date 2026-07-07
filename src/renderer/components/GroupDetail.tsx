@@ -13,6 +13,7 @@ export default function GroupDetail({
   const files = detail.files[group];
   const mds = files.filter((f) => f.kind === 'md');
   const images = files.filter((f) => f.kind === 'image');
+  const videos = files.filter((f) => f.kind === 'video');
   const [openMd, setOpenMd] = useState<FileEntry | null>(mds[0] ?? null);
 
   return (
@@ -35,6 +36,17 @@ export default function GroupDetail({
             </div>
           )}
           {openMd && <MarkdownEditor id={detail.id} relPath={openMd.relPath} mtimeMs={openMd.mtimeMs} />}
+          {videos.length > 0 && (
+            <div className="video-grid">
+              {videos.map((f) => (
+                <figure key={f.relPath} className="video-card">
+                  {/* hub:// 프로토콜(stream) 경유 — 앱 내 재생 (Phase D 스펙 §2) */}
+                  <video controls preload="metadata" src={hubUrl(detail.id, f.relPath)} />
+                  <figcaption>{f.name}</figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
           {images.length > 0 && (
             <div className="thumb-grid">
               {images.map((f) => (
