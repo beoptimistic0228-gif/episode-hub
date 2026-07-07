@@ -1,7 +1,16 @@
 import { useHub } from '../store/useHub';
 
 export default function Sidebar() {
-  const { episodes, selectedId, select, pickRoot, root } = useHub();
+  const { episodes, selectedId, select, pickRoot, root, gitStatus, gitPull } = useHub();
+  const chip = (() => {
+    const s = gitStatus;
+    if (!s || s.state === 'error') return { cls: 'warn', text: s?.message ? 'git: ' + s.message : 'git 사용 불가' };
+    if (s.fetchFailed) return { cls: 'warn', text: '오프라인' };
+    if (s.state === 'diverged') return { cls: 'err', text: '🔴 충돌 — 수동 정리 필요' };
+    if (s.state === 'behind') return { cls: 'info', text: `🔵 받을 것 ${s.behind}` };
+    if (s.state === 'ahead') return { cls: 'ok', text: `🟡 올릴 것 ${s.ahead}` };
+    return { cls: 'ok', text: '🟢 최신' };
+  })();
   return (
     <aside className="sidebar">
       <h1 className="brand">
@@ -26,11 +35,23 @@ export default function Sidebar() {
         )}
       </nav>
       <div className="footer">
-        {/* Phase C에서 git 상태 칩으로 교체 — 지금은 루트 표시 + 변경 버튼 */}
+        <div className={`git-chip ${chip.cls}`}>{chip.text}</div>
         <div className="root-path">{root ?? 'orchestrator 미연결'}</div>
         <div className="footer-actions">
           <button className="btn-pill secondary sm" onClick={pickRoot}>폴더 변경</button>
-          <button className="btn-pill secondary sm" disabled title="Phase C에서 활성화">Update</button>
+          <button
+            className="btn-pill secondary sm"
+            onClick={async () => {
+              try {
+                const r = await gitPull();
+                if (!r.ok) alert('Update 실패: ' + r.message);
+              } catch (e) {
+                alert('Update 오류: ' + String(e));
+              }
+            }}
+          >
+            Update
+          </button>
         </div>
       </div>
     </aside>

@@ -300,3 +300,9 @@ body {
 }
 .gate-chip.on { background: var(--success, #17754a); border-color: var(--success, #17754a); color: #fff; }
 .stage-select { margin-left: auto; padding: 5px 10px; font-size: 12px; border-radius: 8px; border: 1px solid #d0d0d0; }
+
+.git-chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; margin-bottom: 6px; display: inline-block; }
+.git-chip.ok { background: var(--success-tint, rgba(23,117,74,0.12)); color: var(--success, #17754a); }
+.git-chip.info { background: rgba(29,120,215,0.12); color: #1d78d7; }
+.git-chip.warn { background: #fff8e1; color: #8a6d00; }
+.git-chip.err { background: var(--error-tint, rgba(211,47,47,0.12)); color: var(--error, #d32f2f); }
