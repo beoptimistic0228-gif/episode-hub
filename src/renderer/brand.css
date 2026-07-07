@@ -346,10 +346,7 @@ body {
 
 /* 에이전트 콜아웃 — 탭 아래, 담당 에이전트가 말풍선으로 단계 설명 */
 .agent-callout { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 16px; }
-.agent-avatar {
-  width: 46px; height: 46px; padding: 9px; flex-shrink: 0;
-  background: var(--ink0); box-shadow: var(--shadow-sm);
-}
+.agent-avatar { width: 42px; height: 42px; flex-shrink: 0; }
 .agent-bubble {
   position: relative; background: var(--canvas); border: 1px solid var(--hairline);
   padding: 9px 14px 10px; box-shadow: var(--shadow-sm); max-width: 720px;
