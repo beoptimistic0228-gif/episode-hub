@@ -80,3 +80,24 @@ export async function fetchStatus(orchestratorRoot: string, doFetch = true): Pro
     ...(fetchFailed ? { fetchFailed: true } : {}),
   };
 }
+
+export async function pullFF(orchestratorRoot: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  const gitRoot = await resolveGitRoot(orchestratorRoot);
+  // 작업트리가 더러우면 pull 하지 않는다(작업트리 보존). --ff-only는 더러운 파일과
+  // 충돌하지 않는 FF는 허용하므로, 안전을 위해 사전에 명시적으로 거부한다.
+  const pre = await fetchStatus(orchestratorRoot, false);
+  if (pre.dirty) return { ok: false, message: '작업트리에 커밋되지 않은 변경이 있어 pull을 건너뜁니다' };
+  const r = await runGit(gitRoot, ['pull', '--ff-only']);
+  if (r.code === 0) return { ok: true };
+  return { ok: false, message: (r.stderr || r.stdout || 'pull 실패').trim() };
+}
+
+/** 상태 조회(+fetch). auto면 behind&clean일 때만 FF-pull 후 재산출. */
+export async function syncStatus(orchestratorRoot: string, auto: boolean): Promise<GitStatus> {
+  let s = await fetchStatus(orchestratorRoot, true);
+  if (auto && s.state === 'behind' && !s.dirty) {
+    const p = await pullFF(orchestratorRoot);
+    if (p.ok) s = await fetchStatus(orchestratorRoot, false);
+  }
+  return s;
+}
