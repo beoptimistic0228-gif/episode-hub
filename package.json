@@ -17,6 +17,7 @@
   "build": {
     "appId": "com.nakgwan.episode-hub",
     "productName": "Episode Hub",
+    "electronDist": "node_modules/electron/dist",
     "directories": {
       "output": "release"
     },
