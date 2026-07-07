@@ -1,7 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { safeEpisodePath } from './pathGuard';
-import { normCategory, RENDER_ROWS } from '@shared/episode';
+import { normCategory, RENDER_ROWS, STAGES } from '@shared/episode';
+import type { EpisodeDoc } from '@shared/types';
 
 export type WriteTextResult =
   | { ok: true; mtimeMs: number }
@@ -54,4 +55,45 @@ export function saveRender(
   mkdirSync(dirname(full), { recursive: true });
   atomicWrite(full, bytes);
   return { ok: true, relPath };
+}
+
+export interface EpisodePatch {
+  approve?: { key: string };
+  unapprove?: { key: string };
+  stage?: string;
+}
+
+/** episode.json 부분 병합(read-modify-write). schema_version 가드. 파일 없으면 골격 생성. */
+export function patchEpisode(
+  root: string,
+  id: string,
+  patch: EpisodePatch,
+): { ok: true; doc: EpisodeDoc } {
+  const full = safeEpisodePath(root, id, 'episode.json');
+  let doc: EpisodeDoc;
+  if (existsSync(full)) {
+    doc = JSON.parse(readFileSync(full, 'utf-8')) as EpisodeDoc;
+    if (doc.schema_version !== 1) {
+      throw new Error(`지원하지 않는 schema_version: ${doc.schema_version}`);
+    }
+    if (!doc.approvals) doc.approvals = {};
+  } else {
+    doc = { schema_version: 1, title: id, stage: '', approvals: {} };
+  }
+
+  if (patch.approve) {
+    doc.approvals[patch.approve.key] = { approved: true, by: 'owner', at: new Date().toISOString() };
+  }
+  if (patch.unapprove) {
+    delete doc.approvals[patch.unapprove.key];
+  }
+  if (patch.stage !== undefined) {
+    if (!STAGES.includes(patch.stage as (typeof STAGES)[number])) {
+      throw new Error(`잘못된 stage: ${patch.stage}`);
+    }
+    doc.stage = patch.stage;
+  }
+
+  atomicWrite(full, JSON.stringify(doc, null, 2));
+  return { ok: true, doc };
 }
