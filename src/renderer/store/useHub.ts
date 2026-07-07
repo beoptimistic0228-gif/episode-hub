@@ -9,6 +9,10 @@ interface HubState {
   selectedId: string | null;
   detail: EpisodeDetail | null;
   gitStatus: GitStatus | null;
+  /** 전역 페이지 — 첫 화면은 대시보드 (Phase D §1) */
+  page: 'dashboard' | 'episode';
+  goDashboard: () => void;
+  openEpisode: (id: string) => Promise<void>;
   init: () => Promise<void>;
   refresh: () => Promise<void>;
   select: (id: string) => Promise<void>;
@@ -28,6 +32,15 @@ export const useHub = create<HubState>((set, get) => ({
   selectedId: null,
   detail: null,
   gitStatus: null,
+  page: 'dashboard',
+
+  goDashboard: () => set({ page: 'dashboard' }),
+
+  // 사용자 이동 — select(데이터 로드)와 분리: refresh의 자동 선택이 페이지를 안 바꾸게
+  openEpisode: async (id) => {
+    await get().select(id);
+    set({ page: 'episode' });
+  },
 
   init: async () => {
     const { root } = await window.hub.config.get();

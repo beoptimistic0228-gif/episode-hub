@@ -1,8 +1,17 @@
 import { useHub } from '../store/useHub';
 import bannerImg from '../assets/brand-banner.png';
+import snsYoutube from '../assets/sns-youtube.png';
+import snsInstagram from '../assets/sns-instagram.png';
+import snsBlog from '../assets/sns-blog.png';
+
+const SNS = [
+  { kind: 'youtube' as const, icon: snsYoutube, label: '누구의 공간 유튜브' },
+  { kind: 'instagram' as const, icon: snsInstagram, label: '인스타그램' },
+  { kind: 'blog' as const, icon: snsBlog, label: '네이버 블로그' },
+];
 
 export default function Sidebar() {
-  const { episodes, selectedId, select, pickRoot, root, gitStatus, gitPull } = useHub();
+  const { episodes, selectedId, openEpisode, pickRoot, root, gitStatus, gitPull, page, goDashboard } = useHub();
   const chip = (() => {
     const s = gitStatus;
     if (!s || s.state === 'error') return { cls: 'warn', text: s?.message ? 'git: ' + s.message : 'git 사용 불가' };
@@ -18,13 +27,19 @@ export default function Sidebar() {
         <img className="brand-banner" src={bannerImg} alt="누구의 공간" />
         <span className="brand-sub">누구의 공간</span>
       </h1>
+      <button
+        className={`ep-item nav-page${page === 'dashboard' ? ' selected' : ''}`}
+        onClick={goDashboard}
+      >
+        🏠 대시보드
+      </button>
       <div className="section-label">Episodes</div>
       <nav>
         {episodes.map((ep) => (
           <button
             key={ep.id}
-            className={`ep-item${ep.id === selectedId ? ' selected' : ''}`}
-            onClick={() => select(ep.id)}
+            className={`ep-item${page === 'episode' && ep.id === selectedId ? ' selected' : ''}`}
+            onClick={() => openEpisode(ep.id)}
             title={ep.error ?? ep.title}
           >
             <span className="ep-hash">#</span> {ep.title}
@@ -53,6 +68,13 @@ export default function Sidebar() {
           >
             Update
           </button>
+        </div>
+        <div className="sns-row">
+          {SNS.map((s) => (
+            <button key={s.kind} className="sns-btn" title={s.label} onClick={() => void window.hub.links.open(s.kind)}>
+              <img src={s.icon} alt={s.label} />
+            </button>
+          ))}
         </div>
       </div>
     </aside>

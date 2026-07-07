@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
 import Sidebar from './components/Sidebar';
+import Dashboard from './components/Dashboard';
 import EpisodeView from './components/EpisodeView';
 import { useHub } from './store/useHub';
 
 export default function App() {
-  const { init, root, pickRoot } = useHub();
+  const { init, root, pickRoot, page } = useHub();
   useEffect(() => {
     void init();
     const off = window.hub.events.onEpisodesChanged(() => {
@@ -19,7 +20,7 @@ export default function App() {
       <Sidebar />
       <main className="main">
         {root ? (
-          <EpisodeView />
+          page === 'dashboard' ? <Dashboard /> : <EpisodeView />
         ) : (
           <div className="empty-state">
             <p>orchestrator 폴더를 찾지 못했어요.</p>

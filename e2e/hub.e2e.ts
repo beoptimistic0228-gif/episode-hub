@@ -82,6 +82,11 @@ test.beforeAll(async () => {
     '## 1. [책상] X\n\n### Row 1 — 4각도 컷 (정면·45도·측면·탑뷰)\n\n**영문 (Gemini·ChatGPT·Higgsfield)**\n\n```\nprompt text\n```\n',
   );
   writeFileSync(join(epDir, 'products', '책상_p.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+  // Phase D fixture — 최종 영상·OSMU
+  mkdirSync(join(epDir, 'final'), { recursive: true });
+  writeFileSync(join(epDir, 'final', 'full.mp4'), Buffer.from([0x00, 0x00, 0x00, 0x18]));
+  mkdirSync(join(epDir, 'osmu'), { recursive: true });
+  writeFileSync(join(epDir, 'osmu', 'blog_1.md'), '# 블로그 초안\n');
 
   if (gitAvailable) {
     // 렌더 이미지는 gitignore로 커밋 제외 (Complete가 이미지 제외함을 fixture에서도 반영).
@@ -119,6 +124,13 @@ test('① 부팅: 페이지 에러 없이 뜨고 사이드바에 fixture 에피�
     .evaluate((el) => (el as HTMLImageElement).naturalWidth);
   expect(bannerW).toBeGreaterThan(0);
   expect(pageErrors, '시작 시 uncaught 에러').toEqual([]);
+});
+
+test('①-b 첫 화면=대시보드: 집계 타일·달력 표시 → 현황 카드 클릭으로 에피소드 진입', async () => {
+  await expect(page.locator('.stat-tile').first()).toBeVisible();
+  await expect(page.locator('.cal')).toBeVisible();
+  await page.locator('.ep-card', { hasText: 'E2E 룸' }).click();
+  await page.waitForSelector('nav.tab-bar'); // 에피소드 화면 진입
 });
 
 test('② md 편집→저장: 대본 .md 내용이 디스크에 반영된다', async () => {
@@ -163,10 +175,22 @@ test('④ 렌더 드롭 저장(IPC 직접): renders/책상__row1.png가 디스�
   // IPC 직접 쓰기 후 DOM 갱신은 리로드로 확인(interior-studio 패턴) — 프롬프트 워크벤치에 ✓ 표시.
   await page.reload();
   await page.waitForSelector('.sidebar');
+  await page.locator('.sidebar nav .ep-item', { hasText: 'E2E 룸' }).click(); // 리로드 → 대시보드 → 재진입
   await page.locator('nav.tab-bar button', { hasText: '렌더 프롬프트' }).click();
   await expect(page.locator('.dropzone.filled')).toContainText('4각도 컷 이미지 저장됨');
 
   await page.screenshot({ path: join(test.info().outputDir, 'phase-b-final.png') });
+});
+
+test('④-b 최종 영상 탭: 비디오 플레이어가 렌더된다', async () => {
+  await page.locator('nav.tab-bar button', { hasText: '최종 영상' }).click();
+  await expect(page.locator('.video-card video')).toHaveCount(1);
+  await expect(page.locator('.video-card figcaption')).toContainText('full.mp4');
+});
+
+test('④-c OSMU 탭: 변환 md가 목록에 보인다', async () => {
+  await page.locator('nav.tab-bar button', { hasText: 'OSMU' }).click();
+  await expect(page.locator('.file-item', { hasText: 'blog_1.md' })).toBeVisible();
 });
 
 // ── Phase C: git 동기화 스모크 ──────────────────────────────────────
@@ -216,6 +240,7 @@ test.describe('Phase C · git 동기화', () => {
     // (⑥은 IPC 직접 호출이라 store gitStatus를 갱신하지 않았음 — 리로드가 init sync로 clean 재산출.)
     await page.reload();
     await page.waitForSelector('.sidebar');
+    await page.locator('.sidebar nav .ep-item', { hasText: 'E2E 룸' }).click(); // 대시보드 → 에피소드 재진입
     const complete = page.getByRole('button', { name: 'Complete' });
     // clean 시작 — Complete 비활성(epChanged=false). init sync가 clean을 물어도 계속 비활성.
     await expect(complete).toBeDisabled();
@@ -230,4 +255,21 @@ test.describe('Phase C · git 동기화', () => {
     // 리로드·Update 없이 refreshGitLocal(no-fetch git:status)만으로 게이트가 켜져야 한다.
     await expect(complete).toBeEnabled();
   });
+});
+
+// ── Phase D: 발행 기록 → 대시보드 집계 ─────────────────────────────────
+test('⑧ 발행 기록 추가: episode.json 반영 + 대시보드 유튜브 타일 집계', async () => {
+  await page.locator('nav.tab-bar button', { hasText: '발행' }).click();
+  await page.getByRole('button', { name: '+ 발행 기록' }).click();
+  await page.getByRole('button', { name: '기록', exact: true }).click(); // 기본값: 유튜브 본편·오늘
+
+  await expect
+    .poll(() => (readEpisodeJson().publications as unknown[] | undefined)?.length)
+    .toBe(1);
+
+  // 대시보드로 이동 → 유튜브 본편 타일 = 1, 달력에 점 1개
+  await page.locator('.sidebar .nav-page').click();
+  await expect(page.locator('.stat-tile', { hasText: '유튜브 본편' }).locator('.stat-num')).toHaveText('1');
+  await expect(page.locator('.cal-cell .cal-dot')).toHaveCount(1);
+  await page.screenshot({ path: join(test.info().outputDir, 'phase-d-dashboard.png') });
 });

@@ -20,6 +20,10 @@ const api = {
     showInFolder: (id: string, relPath: string): Promise<{ ok: true }> =>
       ipcRenderer.invoke('files:showInFolder', id, relPath),
   },
+  links: {
+    open: (kind: 'youtube' | 'instagram' | 'blog'): Promise<{ ok: true }> =>
+      ipcRenderer.invoke('links:open', kind),
+  },
   renders: {
     save: (id: string, category: string, row: string, bytes: ArrayBuffer, overwrite?: boolean): Promise<SaveRenderResult> =>
       ipcRenderer.invoke('renders:save', id, category, row, bytes, overwrite),

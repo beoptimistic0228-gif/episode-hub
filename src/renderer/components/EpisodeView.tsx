@@ -4,6 +4,7 @@ import { APPROVAL_GATES } from '@shared/episode';
 import AgentCallout from './AgentCallout';
 import EpisodeHeader from './EpisodeHeader';
 import GroupDetail from './GroupDetail';
+import PublicationStrip from './PublicationStrip';
 import { useHub } from '../store/useHub';
 
 export default function EpisodeView() {
@@ -47,6 +48,7 @@ export default function EpisodeView() {
         })}
       </nav>
       <AgentCallout group={tab} />
+      {tab === 'publish' && <PublicationStrip detail={detail} />}
       {/* key=tab — 탭 전환 시 리마운트로 그룹별 내부 상태(선택 md 등) 초기화 */}
       <GroupDetail key={tab} detail={detail} group={tab} />
     </>
