@@ -208,4 +208,24 @@ test.describe('Phase C · git 동기화', () => {
     const committed = g(repo, 'show', `HEAD:orchestrator/output/episodes/${EP_ID}/script/콘티.md`);
     expect(committed).toContain(marker);
   });
+
+  test('⑦ 활성 게이트: 인앱 md 편집(store 경로) 후 Complete 버튼이 활성된다', async () => {
+    // ⑥이 EP 폴더를 커밋했으므로 작업트리는 clean → 리로드로 store를 clean 상태로 리셋.
+    // (⑥은 IPC 직접 호출이라 store gitStatus를 갱신하지 않았음 — 리로드가 init sync로 clean 재산출.)
+    await page.reload();
+    await page.waitForSelector('.sidebar');
+    const complete = page.getByRole('button', { name: 'Complete' });
+    // clean 시작 — Complete 비활성(epChanged=false). init sync가 clean을 물어도 계속 비활성.
+    await expect(complete).toBeDisabled();
+
+    // 실제 UI 편집 흐름(MarkdownEditor → store.writeText → refreshGitLocal). IPC 직접 우회 아님.
+    await page.locator('nav.tab-bar button', { hasText: '대본' }).click();
+    await page.waitForSelector('.md-editor');
+    await page.getByRole('button', { name: '편집' }).click();
+    await page.locator('.md-textarea').fill(`# 콘티\n\nE2E-GATE-${Date.now()}\n`);
+    await page.getByRole('button', { name: '저장', exact: true }).click();
+
+    // 리로드·Update 없이 refreshGitLocal(no-fetch git:status)만으로 게이트가 켜져야 한다.
+    await expect(complete).toBeEnabled();
+  });
 });

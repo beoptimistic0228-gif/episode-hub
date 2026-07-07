@@ -28,6 +28,7 @@ const api = {
   },
   git: {
     sync: (auto: boolean): Promise<GitStatus> => ipcRenderer.invoke('git:sync', auto),
+    status: (): Promise<GitStatus> => ipcRenderer.invoke('git:status'),
     pull: (): Promise<{ ok: true } | { ok: false; message: string }> => ipcRenderer.invoke('git:pull'),
     complete: (episodeId: string): Promise<CompleteResult> => ipcRenderer.invoke('git:complete', episodeId),
   },

@@ -7,7 +7,10 @@ export default function App() {
   const { init, root, pickRoot } = useHub();
   useEffect(() => {
     void init();
-    const off = window.hub.events.onEpisodesChanged(() => { void useHub.getState().refresh(); });
+    const off = window.hub.events.onEpisodesChanged(() => {
+      void useHub.getState().refresh();
+      void useHub.getState().refreshGitLocal();
+    });
     return off;
   }, [init]);
 

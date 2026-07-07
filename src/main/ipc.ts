@@ -2,7 +2,7 @@ import { app, dialog, ipcMain } from 'electron';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadConfig, resolveOrchestratorRoot, saveConfig } from './config';
-import { completeEpisode, pullFF, syncStatus } from './git';
+import { completeEpisode, fetchStatus, pullFF, syncStatus } from './git';
 import { assertEpisodeId, safeEpisodePath } from './pathGuard';
 import { scanEpisodeDetail, scanEpisodes } from './scanner';
 import { patchEpisode, saveRender, writeText, type EpisodePatch } from './writer';
@@ -76,6 +76,12 @@ export function registerIpc(onRootChanged: (root: string) => void): void {
   ipcMain.handle('git:sync', (_e, auto: boolean) => {
     if (!currentRoot) throw new Error('orchestrator 루트 미설정');
     return syncStatus(currentRoot, auto);
+  });
+
+  // 로컬(no-fetch) 상태 갱신 — 인앱 변경·watcher 직후 Complete 활성 배선용. 네트워크 fetch 없음.
+  ipcMain.handle('git:status', () => {
+    if (!currentRoot) throw new Error('orchestrator 루트 미설정');
+    return fetchStatus(currentRoot, false);
   });
 
   ipcMain.handle('git:pull', () => {

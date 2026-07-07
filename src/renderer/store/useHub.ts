@@ -17,6 +17,7 @@ interface HubState {
   saveRender: (category: string, row: string, bytes: ArrayBuffer, overwrite?: boolean) => Promise<SaveRenderResult>;
   patchEpisode: (patch: EpisodePatch) => Promise<void>;
   refreshGit: () => Promise<void>;
+  refreshGitLocal: () => Promise<void>;
   gitPull: () => Promise<{ ok: true } | { ok: false; message: string }>;
   completeEpisode: () => Promise<CompleteResult>;
 }
@@ -58,14 +59,17 @@ export const useHub = create<HubState>((set, get) => ({
   pickRoot: async () => {
     const { root } = await window.hub.config.pickRoot();
     set({ root });
-    if (root) await get().refresh();
+    if (root) {
+      await get().refresh();
+      await get().refreshGitLocal();
+    }
   },
 
   writeText: async (relPath, content, expectedMtimeMs) => {
     const { selectedId } = get();
     if (!selectedId) throw new Error('선택된 에피소드 없음');
     const res = await window.hub.files.writeText(selectedId, relPath, content, expectedMtimeMs);
-    if ('ok' in res) await get().select(selectedId);
+    if ('ok' in res) { await get().select(selectedId); await get().refreshGitLocal(); }
     return res;
   },
 
@@ -73,7 +77,7 @@ export const useHub = create<HubState>((set, get) => ({
     const { selectedId } = get();
     if (!selectedId) throw new Error('선택된 에피소드 없음');
     const res = await window.hub.renders.save(selectedId, category, row, bytes, overwrite);
-    if ('ok' in res) await get().select(selectedId);
+    if ('ok' in res) { await get().select(selectedId); await get().refreshGitLocal(); }
     return res;
   },
 
@@ -82,11 +86,18 @@ export const useHub = create<HubState>((set, get) => ({
     if (!selectedId) throw new Error('선택된 에피소드 없음');
     await window.hub.episode.patch(selectedId, patch);
     await get().select(selectedId);
+    await get().refreshGitLocal();
   },
 
   refreshGit: async () => {
     if (!get().root) return;
     try { set({ gitStatus: await window.hub.git.sync(false) }); } catch { /* 무시 — 칩이 이전 상태 유지 */ }
+  },
+
+  // 로컬(no-fetch) 상태 갱신 — 인앱 변경·watcher 직후 호출. 네트워크 fetch 없이 dirty/changedPaths만 재산출.
+  refreshGitLocal: async () => {
+    if (!get().root) return;
+    try { set({ gitStatus: await window.hub.git.status() }); } catch { /* 무시 — 칩이 이전 상태 유지 */ }
   },
 
   gitPull: async () => {
