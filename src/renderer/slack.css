@@ -285,3 +285,10 @@ body {
   *, *::before, *::after { transition: none !important; }
   .thumb-grid figure:hover { transform: none; }
 }
+
+.drop-row { display: flex; gap: 8px; margin-top: 10px; }
+.dropzone {
+  flex: 1; padding: 12px; text-align: center; font-size: 12px; color: #888;
+  border: 1.5px dashed #cfcfcf; border-radius: 10px; cursor: default; user-select: none;
+}
+.dropzone.filled { color: var(--success, #17754a); border-color: var(--success, #17754a); border-style: solid; }
