@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { GroupKey } from '@shared/groups';
 import type { EpisodeDetail, FileEntry } from '@shared/types';
-import MarkdownView from './MarkdownView';
+import MarkdownEditor from './MarkdownEditor';
 import PromptsWorkbench from './PromptsWorkbench';
 
 const hubUrl = (id: string, relPath: string) =>
@@ -34,7 +34,7 @@ export default function GroupDetail({
               ))}
             </div>
           )}
-          {openMd && <MarkdownView id={detail.id} relPath={openMd.relPath} />}
+          {openMd && <MarkdownEditor id={detail.id} relPath={openMd.relPath} mtimeMs={openMd.mtimeMs} />}
           {images.length > 0 && (
             <div className="thumb-grid">
               {images.map((f) => (

@@ -270,6 +270,17 @@ body {
 
 .empty-state { color: var(--ink-mute); padding: 56px 0; text-align: center; font-size: 13.5px; }
 
+.md-editor .md-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+.md-textarea {
+  width: 100%; min-height: 60vh; box-sizing: border-box; padding: 16px;
+  font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.6;
+  border: 1px solid var(--hairline, #e0e0e0); border-radius: 12px; resize: vertical;
+}
+.banner.warn {
+  display: flex; gap: 12px; align-items: center; margin-bottom: 12px; padding: 10px 14px;
+  background: #fff8e1; border: 1px solid #ffe082; border-radius: 10px; font-size: 13px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }
   .thumb-grid figure:hover { transform: none; }
