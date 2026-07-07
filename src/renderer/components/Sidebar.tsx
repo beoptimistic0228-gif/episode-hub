@@ -16,7 +16,7 @@ export default function Sidebar() {
     <aside className="sidebar">
       <h1 className="brand">
         <img className="brand-banner" src={bannerImg} alt="누구의 공간" />
-        <span className="brand-sub">Episode Hub</span>
+        <span className="brand-sub">누구의 공간</span>
       </h1>
       <div className="section-label">Episodes</div>
       <nav>

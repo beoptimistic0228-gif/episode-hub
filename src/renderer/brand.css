@@ -48,8 +48,10 @@
   --canvas-lavender: var(--surface-tint);
   /* 지오메트리 — 로고 문법: 하드 엣지 or 완전 원형, 중간 없음 */
   --r-sm: 0; --r-md: 0; --r-lg: 0; --r-xl: 0; --r-pill: 999px;
-  --shadow-sm: 0 1px 3px rgba(10, 10, 10, 0.06);
-  --shadow-md: 0 4px 14px rgba(10, 10, 10, 0.1);
+  /* 엘리베이션 — 입체감 3단 (2026-07-07 Owner 피드백) */
+  --shadow-xs: 0 1px 2px rgba(10, 10, 10, 0.07);
+  --shadow-sm: 0 1px 2px rgba(10, 10, 10, 0.08), 0 3px 8px rgba(10, 10, 10, 0.07);
+  --shadow-md: 0 2px 4px rgba(10, 10, 10, 0.08), 0 10px 24px rgba(10, 10, 10, 0.12);
   --ease: 140ms cubic-bezier(0.2, 0, 0.2, 1);
 }
 
@@ -95,11 +97,11 @@ body {
 .sidebar .brand { padding: 0 14px 14px; }
 .sidebar .brand-banner {
   display: block; width: 100%; border-radius: 0; /* 하늘 카드 = 하드 엣지 (로고 창) */
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
 }
 .sidebar .brand-sub {
-  display: block; font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em;
-  text-transform: uppercase; color: var(--on-dark-mute); margin-top: 8px;
-  padding-left: 2px;
+  display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+  color: var(--on-dark-mute); margin-top: 8px; padding-left: 2px;
 }
 .sidebar .section-label {
   font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em;
@@ -143,11 +145,16 @@ body {
   font-family: inherit;
   transition: background var(--ease), border-color var(--ease), box-shadow var(--ease), color var(--ease);
 }
-.btn-pill.primary { background: var(--ember); color: var(--on-dark); }
-.btn-pill.primary:hover:not(:disabled) { background: var(--ember-deep); }
-.btn-pill.primary:active { background: var(--ember-deep); }
-.btn-pill.secondary { background: var(--canvas); color: var(--ink); border: 1px solid var(--hairline); }
+/* 프라이머리 — 눌리는 입체 버튼 (아래 단 = ember-deep) */
+.btn-pill.primary {
+  background: var(--ember); color: var(--on-dark);
+  box-shadow: 0 2px 0 var(--ember-deep), var(--shadow-sm);
+}
+.btn-pill.primary:hover:not(:disabled) { background: var(--ember-deep); box-shadow: 0 2px 0 #9c2e10, var(--shadow-sm); }
+.btn-pill.primary:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 var(--ember-deep); }
+.btn-pill.secondary { background: var(--canvas); color: var(--ink); border: 1px solid var(--hairline); box-shadow: var(--shadow-xs); }
 .btn-pill.secondary:hover:not(:disabled) { border-color: var(--sky-deep); box-shadow: var(--shadow-sm); }
+.btn-pill.secondary:active:not(:disabled) { transform: translateY(1px); }
 .btn-pill:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn-pill.sm { font-size: 12.5px; padding: 6px 13px; }
 
@@ -183,6 +190,7 @@ body {
   display: inline-block; background: var(--sun); color: var(--ink0);
   font-size: 15px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.4;
   border-radius: var(--r-pill); padding: 4px 15px;
+  box-shadow: 0 2px 0 #b7a416, var(--shadow-xs);
 }
 
 /* ─ 그룹 탭 바 — sticky ─ */
@@ -222,15 +230,16 @@ body {
   text-align: left; background: var(--canvas); border: 1px solid var(--hairline);
   border-radius: 0; padding: 8px 12px; cursor: pointer;
   font-size: 13.5px; font-family: inherit; color: var(--ink);
-  transition: border-color var(--ease), box-shadow var(--ease);
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--ease), box-shadow var(--ease), transform var(--ease);
 }
-.file-item:hover { border-color: var(--sky-deep); box-shadow: var(--shadow-sm); }
+.file-item:hover { border-color: var(--sky-deep); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
 .file-item.selected { border-color: var(--ember); font-weight: 600; box-shadow: var(--shadow-sm); }
 
 .md-view {
   border: 1px solid var(--hairline); border-radius: 0;
   padding: 24px 28px; background: var(--canvas); overflow-x: auto;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
 }
 .md-view table { border-collapse: collapse; margin: 12px 0; }
 .md-view th, .md-view td { border: 1px solid var(--hairline); padding: 6px 10px; font-size: 13px; }
@@ -274,7 +283,9 @@ body {
   display: flex; gap: 14px;
   background: var(--canvas); border: 1px solid var(--hairline); border-radius: 0;
   padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--ease), transform var(--ease);
 }
+.sku-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .sku-photo { width: 104px; height: 104px; object-fit: cover; border-radius: 0; flex-shrink: 0; }
 .sku-photo.clickable { cursor: pointer; transition: box-shadow var(--ease); }
 .sku-photo.clickable:hover { box-shadow: 0 0 0 2px var(--ember); }
@@ -331,11 +342,25 @@ body {
   font-family: inherit; transition: border-color var(--ease), background var(--ease), color var(--ease);
 }
 .gate-chip:hover { border-color: var(--forest); color: var(--forest); }
-.gate-chip.on { background: var(--forest); border-color: var(--forest); color: #fff; }
-.stage-select {
-  margin-left: auto; padding: 5px 10px; font-size: 12px; font-family: inherit;
-  border-radius: 0; border: 1px solid var(--hairline); background: var(--canvas); color: var(--ink);
+.gate-chip.on { background: var(--forest); border-color: var(--forest); color: #fff; box-shadow: 0 2px 0 var(--forest-deep); }
+
+/* 에이전트 콜아웃 — 탭 아래, 담당 에이전트가 말풍선으로 단계 설명 */
+.agent-callout { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 16px; }
+.agent-avatar {
+  width: 46px; height: 46px; padding: 9px; flex-shrink: 0;
+  background: var(--ink0); box-shadow: var(--shadow-sm);
 }
+.agent-bubble {
+  position: relative; background: var(--canvas); border: 1px solid var(--hairline);
+  padding: 9px 14px 10px; box-shadow: var(--shadow-sm); max-width: 720px;
+}
+.agent-bubble::before {
+  content: ''; position: absolute; left: -6px; top: 16px; width: 10px; height: 10px;
+  background: var(--canvas); border-left: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline);
+  transform: rotate(45deg); /* 45° — 지붕각 모티프의 말꼬리 */
+}
+.agent-name { font-size: 11.5px; font-weight: 700; color: var(--ember-deep); letter-spacing: 0.02em; }
+.agent-role { font-size: 13px; color: var(--ink); margin-top: 1px; }
 
 .git-chip { font-size: 12px; padding: 4px 10px; border-radius: var(--r-pill); margin-bottom: 6px; display: inline-block; }
 .git-chip.ok { background: rgba(36, 109, 56, 0.28); color: #9fd4ae; }
