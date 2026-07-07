@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { safeEpisodePath } from './pathGuard';
-import { normCategory, RENDER_ROWS, STAGES } from '@shared/episode';
+import { normCategory, RENDER_ROWS } from '@shared/episode';
 import type { EpisodeDoc } from '@shared/types';
 
 export type WriteTextResult =
@@ -69,7 +69,6 @@ export function saveRender(
 export interface EpisodePatch {
   approve?: { key: string };
   unapprove?: { key: string };
-  stage?: string;
 }
 
 /** episode.json 부분 병합(read-modify-write). schema_version 가드. 파일 없으면 골격 생성. */
@@ -95,12 +94,6 @@ export function patchEpisode(
   }
   if (patch.unapprove) {
     delete doc.approvals[patch.unapprove.key];
-  }
-  if (patch.stage !== undefined) {
-    if (!STAGES.includes(patch.stage as (typeof STAGES)[number])) {
-      throw new Error(`잘못된 stage: ${patch.stage}`);
-    }
-    doc.stage = patch.stage;
   }
 
   atomicWrite(full, JSON.stringify(doc, null, 2));

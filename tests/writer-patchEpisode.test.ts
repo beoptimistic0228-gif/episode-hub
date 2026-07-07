@@ -32,15 +32,9 @@ describe('patchEpisode', () => {
       .toBeUndefined(); // 두 번 해도 안전
   });
 
-  test('stage 화이트리스트 — 허용값 저장, 그 외 throw', () => {
-    const id = ep(root, BASE);
-    expect(patchEpisode(root, id, { stage: '검수' }).doc.stage).toBe('검수');
-    expect(() => patchEpisode(root, id, { stage: 'bogus' })).toThrow(/stage/);
-  });
-
   test('schema_version ≠ 1 → throw', () => {
     const id = ep(root, { ...BASE, schema_version: 2 });
-    expect(() => patchEpisode(root, id, { stage: '검수' })).toThrow(/schema_version/);
+    expect(() => patchEpisode(root, id, { approve: { key: 'moodboard' } })).toThrow(/schema_version/);
   });
 
   test('episode.json 부재 → 골격 생성 후 패치', () => {

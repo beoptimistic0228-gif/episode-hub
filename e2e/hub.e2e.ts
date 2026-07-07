@@ -100,7 +100,7 @@ test.beforeAll(async () => {
   page = await app.firstWindow();
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
   page.on('pageerror', (e) => pageErrors.push(e.message));
-  await page.waitForSelector('text=Episode Hub');
+  await page.waitForSelector('.sidebar .brand-banner');
 });
 
 test.afterAll(async () => {
@@ -137,16 +137,12 @@ test('② md 편집→저장: 대본 .md 내용이 디스크에 반영된다', a
     .toBe(NEW);
 });
 
-test('③ 승인 게이트 토글 + stage 변경: episode.json에 반영된다', async () => {
+test('③ 승인 게이트 토글: episode.json에 반영된다', async () => {
   // 무드보드 게이트 칩 클릭 → approvals.moodboard.approved === true
   await page.locator('.gate-chip', { hasText: '무드보드' }).click();
   await expect
     .poll(() => (readEpisodeJson().approvals as Record<string, { approved?: boolean }>)?.moodboard?.approved)
     .toBe(true);
-
-  // stage select → '검수'
-  await page.locator('.stage-select').selectOption('검수');
-  await expect.poll(() => readEpisodeJson().stage).toBe('검수');
 });
 
 test('④ 렌더 드롭 저장(IPC 직접): renders/책상__row1.png가 디스크에 생성된다', async () => {
