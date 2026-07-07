@@ -54,6 +54,7 @@ function listGroupFiles(epDir: string, group: GroupKey): FileEntry[] {
         continue;
       }
       if (st.isDirectory()) {
+        if (name === '_deprecated') continue; // 폐기 보관함 — 허브에 안 보임 (orchestrator 관례)
         walk(full, `${prefix}${name}/`);
       } else {
         out.push({

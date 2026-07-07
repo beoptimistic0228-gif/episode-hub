@@ -74,6 +74,18 @@ describe('scanEpisodes', () => {
   });
 });
 
+test('scanEpisodeDetail — _deprecated 하위 파일은 목록·카운트에서 제외', () => {
+  const root = mkdtempSync(join(tmpdir(), 'scan-x-'));
+  const ep = makeEpisode(root, 'ep20260628_test', GOOD_DOC);
+  mkdirSync(join(ep, 'script', '_deprecated'), { recursive: true });
+  writeFileSync(join(ep, 'script', 'final.md'), '# 최신');
+  writeFileSync(join(ep, 'script', '_deprecated', 'old_draft.md'), '# 구버전');
+  const d = scanEpisodeDetail(root, 'ep20260628_test');
+  expect(d.files.script.map((f) => f.name)).toEqual(['final.md']);
+  expect(d.groupCounts.script).toBe(1);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test('scanEpisodeDetail — 그룹별 FileEntry + mtime 내림차순 + doc 포함', () => {
   const root = mkdtempSync(join(tmpdir(), 'scan-d-'));
   const ep = makeEpisode(root, 'ep20260628_test', GOOD_DOC);
