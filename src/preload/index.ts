@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { EpisodeDetail, EpisodeSummary, EpisodeDoc } from '../shared/types';
 import type { WriteTextResult, SaveRenderResult, EpisodePatch } from '../main/writer';
+import type { GitStatus, CompleteResult } from '../main/git';
 
 const api = {
   config: {
@@ -24,6 +25,11 @@ const api = {
   episode: {
     patch: (id: string, patch: EpisodePatch): Promise<{ ok: true; doc: EpisodeDoc }> =>
       ipcRenderer.invoke('episode:patch', id, patch),
+  },
+  git: {
+    sync: (auto: boolean): Promise<GitStatus> => ipcRenderer.invoke('git:sync', auto),
+    pull: (): Promise<{ ok: true } | { ok: false; message: string }> => ipcRenderer.invoke('git:pull'),
+    complete: (episodeId: string): Promise<CompleteResult> => ipcRenderer.invoke('git:complete', episodeId),
   },
   events: {
     onEpisodesChanged: (cb: () => void): (() => void) => {

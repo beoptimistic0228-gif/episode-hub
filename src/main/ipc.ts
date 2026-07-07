@@ -2,6 +2,7 @@ import { app, dialog, ipcMain } from 'electron';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadConfig, resolveOrchestratorRoot, saveConfig } from './config';
+import { completeEpisode, pullFF, syncStatus } from './git';
 import { assertEpisodeId, safeEpisodePath } from './pathGuard';
 import { scanEpisodeDetail, scanEpisodes } from './scanner';
 import { patchEpisode, saveRender, writeText, type EpisodePatch } from './writer';
@@ -70,5 +71,20 @@ export function registerIpc(onRootChanged: (root: string) => void): void {
   ipcMain.handle('episode:patch', (_e, id: string, patch: EpisodePatch) => {
     if (!currentRoot) throw new Error('orchestrator 루트 미설정');
     return patchEpisode(currentRoot, id, patch);
+  });
+
+  ipcMain.handle('git:sync', (_e, auto: boolean) => {
+    if (!currentRoot) throw new Error('orchestrator 루트 미설정');
+    return syncStatus(currentRoot, auto);
+  });
+
+  ipcMain.handle('git:pull', () => {
+    if (!currentRoot) throw new Error('orchestrator 루트 미설정');
+    return pullFF(currentRoot);
+  });
+
+  ipcMain.handle('git:complete', (_e, episodeId: string) => {
+    if (!currentRoot) throw new Error('orchestrator 루트 미설정');
+    return completeEpisode(currentRoot, episodeId);
   });
 }
