@@ -32,6 +32,20 @@ describe('writeText', () => {
     expect(() => writeText(root, id, '../../data/x.md', 'x')).toThrow(/이탈/);
   });
 
+  test('연속 저장에서도 mtime 반드시 전진 — NTFS 파일 터널링 회귀 방지', () => {
+    const id = ep(root);
+    const full = join(root, 'output', 'episodes', id, 'script', 'a.md');
+    writeFileSync(full, 'orig');
+    const m = statSync(full).mtimeMs;
+    const r1 = writeText(root, id, 'script/a.md', 'v1', m);
+    expect(r1).toMatchObject({ ok: true });
+    const m1 = (r1 as { ok: true; mtimeMs: number }).mtimeMs;
+    expect(m1).toBeGreaterThan(m);
+    const r2 = writeText(root, id, 'script/a.md', 'v2', m1);
+    expect(r2).toMatchObject({ ok: true });
+    expect((r2 as { ok: true; mtimeMs: number }).mtimeMs).toBeGreaterThan(m1);
+  });
+
   test('mtime 일치 시 저장, 불일치 시 conflict', () => {
     const id = ep(root);
     const full = join(root, 'output', 'episodes', id, 'script', 'a.md');

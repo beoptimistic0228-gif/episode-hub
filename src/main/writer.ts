@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { safeEpisodePath } from './pathGuard';
 import { normCategory, RENDER_ROWS, STAGES } from '@shared/episode';
@@ -27,12 +27,21 @@ export function writeText(
     throw new Error(`md 파일만 저장 가능: ${relPath}`);
   }
   const full = safeEpisodePath(root, id, relPath);
-  if (expectedMtimeMs !== undefined && existsSync(full)) {
-    const cur = statSync(full).mtimeMs;
-    if (cur !== expectedMtimeMs) return { conflict: true, currentMtimeMs: cur };
+  const prevMtimeMs = existsSync(full) ? statSync(full).mtimeMs : undefined;
+  if (expectedMtimeMs !== undefined && prevMtimeMs !== undefined) {
+    if (prevMtimeMs !== expectedMtimeMs) return { conflict: true, currentMtimeMs: prevMtimeMs };
   }
   atomicWrite(full, content);
-  return { ok: true, mtimeMs: statSync(full).mtimeMs };
+  // NTFS 파일 터널링: 같은 이름으로 rename 교체된 파일은 ~15초 창 안에서 원본
+  // 타임스탬프를 물려받아 mtime이 전진하지 않을 수 있다. 충돌 검사는 "쓰기마다
+  // mtime 전진"을 전제하므로 여기서 명시적으로 보장한다.
+  let mtimeMs = statSync(full).mtimeMs;
+  if (prevMtimeMs !== undefined && mtimeMs <= prevMtimeMs) {
+    const forced = Math.max(Date.now(), prevMtimeMs + 1);
+    utimesSync(full, forced / 1000, forced / 1000);
+    mtimeMs = statSync(full).mtimeMs;
+  }
+  return { ok: true, mtimeMs };
 }
 
 export type SaveRenderResult = { ok: true; relPath: string } | { exists: true };
