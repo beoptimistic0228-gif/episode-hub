@@ -1,5 +1,7 @@
-import { existsSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { safeEpisodePath } from './pathGuard';
+import { normCategory, RENDER_ROWS } from '@shared/episode';
 
 export type WriteTextResult =
   | { ok: true; mtimeMs: number }
@@ -30,4 +32,26 @@ export function writeText(
   }
   atomicWrite(full, content);
   return { ok: true, mtimeMs: statSync(full).mtimeMs };
+}
+
+export type SaveRenderResult = { ok: true; relPath: string } | { exists: true };
+
+/** 드롭된 SKU 렌더 이미지를 renders/<정규화 카테고리>__<row>.png 로 저장 */
+export function saveRender(
+  root: string,
+  id: string,
+  category: string,
+  row: string,
+  bytes: Uint8Array,
+  overwrite?: boolean,
+): SaveRenderResult {
+  if (!RENDER_ROWS.includes(row as (typeof RENDER_ROWS)[number])) {
+    throw new Error(`잘못된 row: ${row}`);
+  }
+  const relPath = `renders/${normCategory(category)}__${row}.png`;
+  const full = safeEpisodePath(root, id, relPath);
+  if (existsSync(full) && overwrite !== true) return { exists: true };
+  mkdirSync(dirname(full), { recursive: true });
+  atomicWrite(full, bytes);
+  return { ok: true, relPath };
 }
