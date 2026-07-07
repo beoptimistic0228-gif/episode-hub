@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { loadConfig, resolveOrchestratorRoot, saveConfig } from './config';
 import { assertEpisodeId, safeEpisodePath } from './pathGuard';
 import { scanEpisodeDetail, scanEpisodes } from './scanner';
+import { patchEpisode, saveRender, writeText, type EpisodePatch } from './writer';
 
 const DEFAULT_ROOT = 'C:\\nakgwan-channel-infra\\orchestrator';
 
@@ -54,5 +55,20 @@ export function registerIpc(onRootChanged: (root: string) => void): void {
   ipcMain.handle('files:readText', (_e, id: string, relPath: string) => {
     if (!currentRoot) throw new Error('orchestrator 루트 미설정');
     return readFileSync(safeEpisodePath(currentRoot, id, relPath), 'utf-8');
+  });
+
+  ipcMain.handle('files:writeText', (_e, id: string, relPath: string, content: string, expectedMtimeMs?: number) => {
+    if (!currentRoot) throw new Error('orchestrator 루트 미설정');
+    return writeText(currentRoot, id, relPath, content, expectedMtimeMs);
+  });
+
+  ipcMain.handle('renders:save', (_e, id: string, category: string, row: string, bytes: ArrayBuffer, overwrite?: boolean) => {
+    if (!currentRoot) throw new Error('orchestrator 루트 미설정');
+    return saveRender(currentRoot, id, category, row, new Uint8Array(bytes), overwrite);
+  });
+
+  ipcMain.handle('episode:patch', (_e, id: string, patch: EpisodePatch) => {
+    if (!currentRoot) throw new Error('orchestrator 루트 미설정');
+    return patchEpisode(currentRoot, id, patch);
   });
 }

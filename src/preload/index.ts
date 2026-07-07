@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { EpisodeDetail, EpisodeSummary } from '../shared/types';
+import type { EpisodeDetail, EpisodeSummary, EpisodeDoc } from '../shared/types';
+import type { WriteTextResult, SaveRenderResult, EpisodePatch } from '../main/writer';
 
 const api = {
   config: {
@@ -13,6 +14,16 @@ const api = {
   files: {
     readText: (id: string, relPath: string): Promise<string> =>
       ipcRenderer.invoke('files:readText', id, relPath),
+    writeText: (id: string, relPath: string, content: string, expectedMtimeMs?: number): Promise<WriteTextResult> =>
+      ipcRenderer.invoke('files:writeText', id, relPath, content, expectedMtimeMs),
+  },
+  renders: {
+    save: (id: string, category: string, row: string, bytes: ArrayBuffer, overwrite?: boolean): Promise<SaveRenderResult> =>
+      ipcRenderer.invoke('renders:save', id, category, row, bytes, overwrite),
+  },
+  episode: {
+    patch: (id: string, patch: EpisodePatch): Promise<{ ok: true; doc: EpisodeDoc }> =>
+      ipcRenderer.invoke('episode:patch', id, patch),
   },
   events: {
     onEpisodesChanged: (cb: () => void): (() => void) => {
