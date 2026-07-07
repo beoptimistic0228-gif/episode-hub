@@ -1,4 +1,5 @@
 import type { FileEntry } from '@shared/types';
+import { normCategory } from '@shared/episode';
 
 export interface PromptBlock { label: string; text: string }
 export interface SkuSection { index: number; category: string; model: string; blocks: PromptBlock[] }
@@ -40,10 +41,8 @@ export function parseMasterSheet(md: string): SkuSection[] {
   return sections;
 }
 
-const norm = (s: string) => s.replace(/\s+/g, '_');
-
 /** 카테고리 → products 이미지 매칭 (agent7 저장 규칙: p<phase>_<카테고리 공백→_>_<id>.<ext>) */
 export function matchPhoto(category: string, images: FileEntry[]): FileEntry | null {
-  const token = norm(category.trim());
+  const token = normCategory(category);
   return images.find((f) => f.name.includes(token)) ?? null;
 }

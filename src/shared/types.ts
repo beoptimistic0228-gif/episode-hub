@@ -1,4 +1,5 @@
 import type { GroupKey } from './groups';
+import type { ApprovalRecord } from './episode';
 
 export interface HubConfig { orchestratorRoot: string }
 
@@ -15,7 +16,7 @@ export interface EpisodeDoc {
   schema_version: number;
   title: string;
   stage: string;
-  approvals: Record<string, unknown>;
+  approvals: Record<string, ApprovalRecord>;
   total_estimate?: { low: number; high: number; label: string };
   products?: ProductItem[];
 }
