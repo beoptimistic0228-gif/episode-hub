@@ -15,7 +15,7 @@ export default function EpisodeView() {
   if (!detail) return <div className="empty-state">에피소드를 선택하세요</div>;
   return (
     <>
-      <EpisodeHeader detail={detail} />
+      <EpisodeHeader key={detail.id} detail={detail} />
       <div className="approval-strip">
         {APPROVAL_GATES.map((g) => {
           const on = detail.doc?.approvals?.[g.key]?.approved === true;

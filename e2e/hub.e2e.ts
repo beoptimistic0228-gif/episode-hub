@@ -1,23 +1,39 @@
 import { test, expect, _electron as electron, type ElectronApplication, type Page } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-// 빌드된 앱(out/main)을 실제 Electron으로 띄워, 사람이 손으로 하던 Phase B 쓰기 3흐름을 자동 구동·단언한다.
-// 흐름별로 "DOM 조작 → 디스크 산출" 정합을 검사한다 (interior-studio/e2e/app.e2e.ts 패턴).
-//   ① md 편집→저장  ② 승인 게이트 토글 + stage 변경  ③ 렌더 드롭 저장(네이티브 드롭은 IPC 직접)
-// 임시 fixture root를 앱에 물리기 위해:
-//   electron 실행 시 --user-data-dir=<tempUserData> + 그 안에 hub-config.json={orchestratorRoot:<tempRoot>}
+// 빌드된 앱(out/main)을 실제 Electron으로 띄워, 사람이 손으로 하던 Phase B 쓰기 3흐름 +
+// Phase C git 동기화 흐름을 자동 구동·단언한다 (interior-studio/e2e/app.e2e.ts 패턴).
+//   Phase B  ① md 편집→저장  ② 승인 게이트 토글 + stage 변경  ③ 렌더 드롭 저장(네이티브 드롭은 IPC 직접)
+//   Phase C  ⑤ git 상태 칩 표시  ⑥ Complete(IPC) → 커밋·푸시 → bare 원격 반영 확인
+// fixture root를 앱에 물리기 위해:
+//   electron 실행 시 --user-data-dir=<tempUserData> + 그 안에 hub-config.json={orchestratorRoot:<orchRoot>}
 //   를 미리 써두면 discoverRoot()가 저장 config를 읽어 fixture를 가리킨다.
+// Phase C git 테스트를 위해 fixture는 "git 작업본 + bare 원격 + orchestrator 서브디렉토리"로 구성한다
+//   (tests/gitTestUtil.makeRepoWithRemote 방식 재현 — e2e는 tests/를 import하지 않고 인라인 execFileSync).
+//   즉 gitRoot = <repo>, orchestratorRoot = <repo>/orchestrator (git 루트 ≠ orchestrator 루트).
 
 const MAIN = resolve(__dirname, '../out/main/index.js');
 const EP_ID = 'ep20260101_e2e';
 
+// tests/gitTestUtil.g 재현 (import 금지 — e2e는 자체 헬퍼 인라인).
+const g = (cwd: string, ...args: string[]): string =>
+  execFileSync('git', args, { cwd, encoding: 'utf-8' }).trim();
+
+const gitAvailable = (() => {
+  try { execFileSync('git', ['--version'], { stdio: 'ignore' }); return true; } catch { return false; }
+})();
+
 let app: ElectronApplication;
 let page: Page;
-let tempRoot: string;      // orchestrator 루트 (output/episodes/... fixture)
+let base: string;          // 임시 베이스 (repo + remote를 담는 상위 폴더)
+let remote: string;        // bare 원격 (git 모드에서만)
+let repo: string;          // git 작업본 루트 (== gitRoot; git 모드에서만)
+let orchRoot: string;      // orchestrator 루트 (output/episodes/... fixture)
 let tempUserData: string;  // --user-data-dir (hub-config.json 저장 위치)
-let epDir: string;         // <tempRoot>/output/episodes/<id>
+let epDir: string;         // <orchRoot>/output/episodes/<id>
 const pageErrors: string[] = [];
 const consoleErrors: string[] = [];
 
@@ -26,9 +42,26 @@ const readEpisodeJson = (): Record<string, unknown> =>
 
 test.beforeAll(async () => {
   // ── fixture root 생성 ────────────────────────────────────────────
-  tempRoot = mkdtempSync(join(tmpdir(), 'hub-e2e-root-'));
+  base = mkdtempSync(join(tmpdir(), 'hub-e2e-'));
   tempUserData = mkdtempSync(join(tmpdir(), 'hub-e2e-ud-'));
-  epDir = join(tempRoot, 'output', 'episodes', EP_ID);
+
+  if (gitAvailable) {
+    // git 작업본 + bare 원격 + orchestrator 서브디렉토리
+    remote = join(base, 'remote.git');
+    repo = join(base, 'work');
+    orchRoot = join(repo, 'orchestrator');
+    mkdirSync(repo, { recursive: true });
+    execFileSync('git', ['init', '--bare', '-b', 'main', remote]);
+    g(repo, 'init', '-b', 'main');
+    g(repo, 'config', 'user.email', 't@t.t');
+    g(repo, 'config', 'user.name', 'tester');
+    g(repo, 'config', 'commit.gpgsign', 'false');
+  } else {
+    // git 미설치 폴백 — Phase B는 계속 검증, Phase C git 테스트는 test.skip.
+    orchRoot = join(base, 'root');
+  }
+
+  epDir = join(orchRoot, 'output', 'episodes', EP_ID);
   mkdirSync(join(epDir, 'script'), { recursive: true });
   mkdirSync(join(epDir, 'prompts'), { recursive: true });
   mkdirSync(join(epDir, 'products'), { recursive: true });
@@ -50,8 +83,17 @@ test.beforeAll(async () => {
   );
   writeFileSync(join(epDir, 'products', '책상_p.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
 
-  // 저장 config → discoverRoot()가 fixture root를 채택
-  writeFileSync(join(tempUserData, 'hub-config.json'), JSON.stringify({ orchestratorRoot: tempRoot }));
+  if (gitAvailable) {
+    // 렌더 이미지는 gitignore로 커밋 제외 (Complete가 이미지 제외함을 fixture에서도 반영).
+    writeFileSync(join(repo, '.gitignore'), 'orchestrator/output/episodes/*/renders/*\n');
+    g(repo, 'add', '-A');
+    g(repo, 'commit', '-m', 'init');
+    g(repo, 'remote', 'add', 'origin', remote);
+    g(repo, 'push', '-u', 'origin', 'main');
+  }
+
+  // 저장 config → discoverRoot()가 fixture orchestrator 루트를 채택
+  writeFileSync(join(tempUserData, 'hub-config.json'), JSON.stringify({ orchestratorRoot: orchRoot }));
 
   // ── 앱 실행 ─────────────────────────────────────────────────────
   app = await electron.launch({ args: [MAIN, `--user-data-dir=${tempUserData}`] });
@@ -63,7 +105,7 @@ test.beforeAll(async () => {
 
 test.afterAll(async () => {
   await app?.close();
-  if (tempRoot) rmSync(tempRoot, { recursive: true, force: true });
+  if (base) rmSync(base, { recursive: true, force: true });
   if (tempUserData) rmSync(tempUserData, { recursive: true, force: true });
 });
 
@@ -123,4 +165,47 @@ test('④ 렌더 드롭 저장(IPC 직접): renders/책상__row1.png가 디스�
   await expect(page.locator('.dropzone.filled')).toContainText('row1 생성됨');
 
   await page.screenshot({ path: join(test.info().outputDir, 'phase-b-final.png') });
+});
+
+// ── Phase C: git 동기화 스모크 ──────────────────────────────────────
+// 네이티브 UI(드래그·다이얼로그) 대신 IPC 직접 호출 + fs/git 검증 (interior-studio 패턴).
+test.describe('Phase C · git 동기화', () => {
+  test.skip(!gitAvailable, 'git 미설치 환경 — git 스모크 건너뜀 (fake pass 금지)');
+
+  test('⑤ git 상태 칩이 표시된다', async () => {
+    await expect(page.locator('.git-chip')).toBeVisible();
+  });
+
+  test('⑥ Complete: EP 변경 → IPC로 커밋·푸시, bare 원격에 반영된다', async () => {
+    // (1) EP script md를 하나 바꿔 변경 발생 (네이티브 편집 UI 대신 IPC 직접).
+    const marker = `E2E-GIT-COMPLETE-${Date.now()}`;
+    const wrote = await page.evaluate(async ({ id, marker }) => {
+      const w = window as unknown as {
+        hub: { files: { writeText: (id: string, rel: string, c: string) => Promise<{ ok: boolean }> } };
+      };
+      return w.hub.files.writeText(id, 'script/콘티.md', `# 콘티\n\n${marker}\n`);
+    }, { id: EP_ID, marker });
+    expect(wrote.ok).toBe(true);
+
+    // (2) Complete IPC → { ok: true }.
+    const res = await page.evaluate(async (id) =>
+      (window as unknown as {
+        hub: { git: { complete: (id: string) => Promise<{ ok: boolean }> } };
+      }).hub.git.complete(id), EP_ID);
+    expect(res.ok).toBe(true);
+
+    // (3) 커밋이 bare 원격에 도달했는지 확인:
+    //     로컬 HEAD == origin/main(로컬 추적) == bare 원격의 main.
+    const localHead = g(repo, 'rev-parse', 'HEAD');
+    const originMain = g(repo, 'rev-parse', 'origin/main');
+    const bareMain = g(remote, 'rev-parse', 'main');
+    expect(originMain).toBe(localHead);
+    expect(bareMain).toBe(localHead);
+
+    // (4) 커밋 메시지 + 커밋된 파일 내용(원격)에 marker가 반영됐는지 확인.
+    const subject = g(repo, 'log', '-1', '--pretty=%s');
+    expect(subject).toContain(EP_ID);
+    const committed = g(repo, 'show', `HEAD:orchestrator/output/episodes/${EP_ID}/script/콘티.md`);
+    expect(committed).toContain(marker);
+  });
 });
