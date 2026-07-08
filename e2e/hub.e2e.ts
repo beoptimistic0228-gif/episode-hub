@@ -100,8 +100,20 @@ test.beforeAll(async () => {
   // 저장 config → discoverRoot()가 fixture orchestrator 루트를 채택
   writeFileSync(join(tempUserData, 'hub-config.json'), JSON.stringify({ orchestratorRoot: orchRoot }));
 
+  // 통계 mock 픽스처 — HUB_STATS_MOCK(URL 부분문자열→본문)로 실 API 없이($0·결정성) 수집 구동.
+  const mockFx = join(base, 'stats-mock.json');
+  writeFileSync(mockFx, JSON.stringify({
+    '/channels': JSON.stringify({ items: [{ statistics: { subscriberCount: '12340', viewCount: '458200', videoCount: '42' } }] }),
+    '/videos': JSON.stringify({ items: [] }),
+    'NVisitorgp4Ajax': '<visitorcnts><visitorcnt id="20260708" cnt="210"/></visitorcnts>',
+    'blog.naver.com/be_optimistic228': '<span>이웃 320명</span>',
+  }));
+
   // ── 앱 실행 ─────────────────────────────────────────────────────
-  app = await electron.launch({ args: [MAIN, `--user-data-dir=${tempUserData}`] });
+  app = await electron.launch({
+    args: [MAIN, `--user-data-dir=${tempUserData}`],
+    env: { ...process.env, HUB_STATS_MOCK: mockFx, YOUTUBE_API_KEY: 'TESTKEY' },
+  });
   page = await app.firstWindow();
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
   page.on('pageerror', (e) => pageErrors.push(e.message));
@@ -258,7 +270,7 @@ test.describe('Phase C · git 동기화', () => {
 });
 
 // ── Phase D: 발행 기록 → 대시보드 집계 ─────────────────────────────────
-test('⑧ 발행 기록 추가: episode.json 반영 + 대시보드 유튜브 타일 집계', async () => {
+test('⑧ 발행 기록 추가: episode.json 반영 + 대시보드 발행 달력 집계', async () => {
   await page.locator('nav.tab-bar button', { hasText: '발행' }).click();
   await page.getByRole('button', { name: '+ 발행 기록' }).click();
   await page.getByRole('button', { name: '기록', exact: true }).click(); // 기본값: 유튜브 본편·오늘
@@ -267,9 +279,19 @@ test('⑧ 발행 기록 추가: episode.json 반영 + 대시보드 유튜브 타
     .poll(() => (readEpisodeJson().publications as unknown[] | undefined)?.length)
     .toBe(1);
 
-  // 대시보드로 이동 → 유튜브 본편 타일 = 1, 달력에 점 1개
+  // 대시보드로 이동 → 발행 달력에 점 1개(발행 반영). '유튜브 본편' 집계 타일은
+  // 대시보드 확장(Task 9 KPI 개편, commit 4550514)에서 외부채널 KPI 타일로 대체돼 제거됨 —
+  // 발행 반영은 episode.json publications + 달력 점으로 검증(제거된 타일 단언은 삭제).
   await page.locator('.sidebar .nav-page').click();
-  await expect(page.locator('.stat-tile', { hasText: '유튜브 본편' }).locator('.stat-num')).toHaveText('1');
   await expect(page.locator('.cal-cell .cal-dot')).toHaveCount(1);
   await page.screenshot({ path: join(test.info().outputDir, 'phase-d-dashboard.png') });
+});
+
+// ── 통계 흐름: 새로고침 → mock fetch로 구독자·조회수 집계 ($0·결정성) ──────────
+test('⑨ 대시보드: 새로고침 → 통계(구독자) 표시', async () => {
+  await page.locator('.sidebar .nav-page').click(); // 대시보드 보장
+  await expect(page.locator('.stat-tile').first()).toBeVisible();
+  await page.getByRole('button', { name: /새로고침/ }).click();
+  await expect(page.getByText('12,340')).toBeVisible();     // 구독자 (mock subscriberCount)
+  await expect(page.getByText('구독자')).toBeVisible();
 });

@@ -43,6 +43,17 @@ export function parseNaverNeighbors(html: string): number {
 const YT = 'https://www.googleapis.com/youtube/v3';
 const TIMEOUT_MS = 10_000;
 
+/** 테스트 seam — HUB_STATS_MOCK(URL 부분문자열→본문 JSON 맵) 픽스처로 네트워크 없이 응답 ($0·결정성) */
+function mockFetch(fixturePath: string): typeof fetch {
+  const fx = JSON.parse(readFileSync(fixturePath, 'utf-8')) as Record<string, string>;
+  return (async (input: string | URL) => {
+    const url = String(input);
+    const key = Object.keys(fx).find((k) => url.includes(k));
+    const body = key ? fx[key] : '';
+    return { ok: !!key, status: key ? 200 : 500, text: async () => body, json: async () => JSON.parse(body) } as Response;
+  }) as typeof fetch;
+}
+
 async function getText(fetchFn: typeof fetch, url: string): Promise<string> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
@@ -137,8 +148,10 @@ export async function refreshStats(
   gitRoot: string, orchestratorRoot: string, videoIds: string[],
 ): Promise<ChannelStats> {
   const apiKey = process.env.YOUTUBE_API_KEY || readEnvKey(orchestratorRoot, 'YOUTUBE_API_KEY');
+  const mock = process.env.HUB_STATS_MOCK;
+  const fetchFn = mock ? mockFetch(mock) : undefined;
   const prev = latestSnapshot(readStats(gitRoot));
-  const { snapshot, videos } = await collectSnapshot({ apiKey, videoIds, prev });
+  const { snapshot, videos } = await collectSnapshot({ fetchFn, apiKey, videoIds, prev });
   const cur = readStats(gitRoot);
   const merged: ChannelStats = { ...upsertSnapshot(cur, snapshot), videos: { ...cur.videos, ...videos } };
   writeStats(gitRoot, merged);
