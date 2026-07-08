@@ -5,7 +5,7 @@ import type { ChannelSnapshot } from '@shared/stats';
 const YT = PLATFORMS.find((p) => p.key === 'youtube')!.color;   // ember
 const BLOG = PLATFORMS.find((p) => p.key === 'blog')!.color;    // forest
 
-/** 구독자·조회수·블로그이웃 시계열. 스냅샷 2개 미만이면 안내. */
+/** 구독자·블로그이웃 시계열. 스냅샷 2개 미만이면 안내. */
 export default function GrowthChart({ snapshots }: { snapshots: ChannelSnapshot[] }) {
   if (snapshots.length < 2) {
     return <div className="chart-empty">성장 데이터가 쌓이는 중이에요 (스냅샷 {snapshots.length}개)</div>;

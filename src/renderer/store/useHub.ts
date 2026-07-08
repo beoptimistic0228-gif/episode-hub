@@ -13,6 +13,8 @@ interface HubState {
   /** 전역 페이지 — 첫 화면은 대시보드 (Phase D §1) */
   page: 'dashboard' | 'episode';
   stats: ChannelStats | null;
+  statsRefreshing: boolean;
+  statsError: string | null;
   loadStats: () => Promise<void>;
   refreshStats: () => Promise<void>;
   goDashboard: () => void;
@@ -38,11 +40,16 @@ export const useHub = create<HubState>((set, get) => ({
   gitStatus: null,
   page: 'dashboard',
   stats: null,
+  statsRefreshing: false,
+  statsError: null,
   loadStats: async () => {
     try { set({ stats: await window.hub.stats.get() }); } catch { /* 무시 */ }
   },
   refreshStats: async () => {
-    try { set({ stats: await window.hub.stats.refresh() }); } catch { /* 무시 */ }
+    set({ statsRefreshing: true });
+    try { set({ stats: await window.hub.stats.refresh(), statsError: null }); }
+    catch { set({ statsError: '새로고침 실패' }); }
+    finally { set({ statsRefreshing: false }); }
   },
 
   goDashboard: () => set({ page: 'dashboard' }),

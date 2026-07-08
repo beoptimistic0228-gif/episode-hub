@@ -45,6 +45,7 @@ async function bootCollectStats(): Promise<void> {
     const today = new Date().toISOString().slice(0, 10);
     if (latestSnapshot(readStats(gitRoot))?.date === today) return; // 이미 오늘 수집됨
     await refreshStats(gitRoot, root, collectVideoIds(root));
+    mainWin?.webContents.send('stats:changed'); // same-session 렌더러 반영 (스로틀 skip 시엔 이미 최신)
     void commitStats(root).catch(() => {});
   } catch { /* 부팅 수집 실패는 비치명적 */ }
 }

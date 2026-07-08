@@ -1,5 +1,5 @@
 import { GROUPS } from '@shared/groups';
-import { APPROVAL_GATES, PLATFORMS } from '@shared/episode';
+import { APPROVAL_GATES } from '@shared/episode';
 import { latestSnapshot, snapshotOnOrBefore, computeDelta, type Delta } from '@shared/stats';
 import PublishCalendar from './PublishCalendar';
 import GrowthChart from './charts/GrowthChart';
@@ -14,9 +14,8 @@ function DeltaBadge({ d }: { d: Delta }) {
 }
 
 export default function Dashboard() {
-  const { episodes, openEpisode, stats, refreshStats } = useHub();
+  const { episodes, openEpisode, stats, refreshStats, statsRefreshing, statsError } = useHub();
   const pubs = episodes.flatMap((e) => e.publications);
-  const countOf = (key: string) => pubs.filter((p) => p.platform === key).length;
 
   const snapshots = stats?.snapshots ?? [];
   const cur = latestSnapshot(stats ?? { schema_version: 1, snapshots: [], videos: {} });
@@ -34,7 +33,9 @@ export default function Dashboard() {
         <h2 className="dash-title">대시보드</h2>
         <div className="dash-head-right">
           {cur && <span className="dash-updated">갱신 {relTime(cur.at)}</span>}
-          <button className="refresh-btn" onClick={() => void refreshStats()}>🔄 새로고침</button>
+          <button className="refresh-btn" onClick={() => void refreshStats()} disabled={statsRefreshing}>
+            {statsRefreshing ? '🔄 수집 중…' : '🔄 새로고침'}
+          </button>
         </div>
       </div>
 
@@ -73,6 +74,9 @@ export default function Dashboard() {
       )}
       {cur && cur.sources.blog !== 'ok' && (
         <div className="stat-note">⚠️ 블로그 통계가 최신이 아닐 수 있어요 (마지막값 표시).</div>
+      )}
+      {statsError && (
+        <div className="stat-note">⚠️ 새로고침 실패 — 잠시 후 다시 시도</div>
       )}
 
       {/* ②③ 그래프 2단 */}

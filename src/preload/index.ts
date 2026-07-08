@@ -49,6 +49,11 @@ const api = {
       ipcRenderer.on('episodes:changed', listener);
       return () => ipcRenderer.removeListener('episodes:changed', listener);
     },
+    onStatsChanged: (cb: () => void): (() => void) => {
+      const listener = () => cb();
+      ipcRenderer.on('stats:changed', listener);
+      return () => ipcRenderer.removeListener('stats:changed', listener);
+    },
   },
 };
 
