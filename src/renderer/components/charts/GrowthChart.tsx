@@ -5,10 +5,10 @@ import type { ChannelSnapshot } from '@shared/stats';
 const YT = PLATFORMS.find((p) => p.key === 'youtube')!.color;   // ember
 const BLOG = PLATFORMS.find((p) => p.key === 'blog')!.color;    // forest
 
-/** 구독자·블로그이웃 시계열. 스냅샷 2개 미만이면 안내. */
+/** 구독자·블로그이웃 시계열. 스냅샷 0개면 안내, 1개면 점 하나로 현재값 표시, 2개+면 선. */
 export default function GrowthChart({ snapshots }: { snapshots: ChannelSnapshot[] }) {
-  if (snapshots.length < 2) {
-    return <div className="chart-empty">성장 데이터가 쌓이는 중이에요 (스냅샷 {snapshots.length}개)</div>;
+  if (snapshots.length === 0) {
+    return <div className="chart-empty">성장 데이터가 쌓이는 중이에요</div>;
   }
   const data = snapshots.map((s) => ({
     date: s.date.slice(5), // MM-DD
@@ -27,8 +27,9 @@ export default function GrowthChart({ snapshots }: { snapshots: ChannelSnapshot[
           <YAxis yAxisId="right" orientation="right" fontSize={11} width={44} stroke={BLOG} />
           <Tooltip />
           <Legend />
-          <Line yAxisId="left" type="monotone" dataKey="구독자" stroke={YT} strokeWidth={2} dot={false} connectNulls />
-          <Line yAxisId="right" type="monotone" dataKey="블로그이웃" stroke={BLOG} strokeWidth={2} dot={false} connectNulls />
+          {/* 점 1~2개일 땐 dot을 찍어 첫날 값도 보이게, 선이 생기는 3개+부턴 dot 숨김 */}
+          <Line yAxisId="left" type="monotone" dataKey="구독자" stroke={YT} strokeWidth={2} dot={data.length <= 2 ? { r: 3 } : false} connectNulls />
+          <Line yAxisId="right" type="monotone" dataKey="블로그이웃" stroke={BLOG} strokeWidth={2} dot={data.length <= 2 ? { r: 3 } : false} connectNulls />
         </LineChart>
       </ResponsiveContainer>
     </div>
