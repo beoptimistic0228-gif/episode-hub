@@ -35,3 +35,25 @@ export function saveConfig(file: string, cfg: HubConfig): void {
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, JSON.stringify(cfg, null, 2), 'utf-8');
 }
+
+/**
+ * orchestrator/.env 에서 키를 읽는다 (orchestrator lib_config.py와 동일 규칙).
+ * YOUR_ 플레이스홀더·빈값·파일없음은 null. OS env 우선순위는 호출측(statsFetcher)에서.
+ */
+export function readEnvKey(orchestratorRoot: string, name: string): string | null {
+  try {
+    const raw = readFileSync(join(orchestratorRoot, '.env'), 'utf-8');
+    for (const line of raw.split(/\r?\n/)) {
+      const t = line.trim();
+      if (!t || t.startsWith('#') || !t.includes('=')) continue;
+      const i = t.indexOf('=');
+      if (t.slice(0, i).trim() !== name) continue;
+      const v = t.slice(i + 1).trim().replace(/^['"]|['"]$/g, '');
+      if (!v || v.toUpperCase().startsWith('YOUR_')) return null;
+      return v;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
