@@ -169,3 +169,28 @@ export async function completeEpisode(orchestratorRoot: string, episodeId: strin
   }
   return { ok: true, pushed: true };
 }
+
+const STATS_REL = 'episode-hub/data/channel_stats.json';
+
+/** 통계 파일만 add→commit→push (completeEpisode의 파일 스코프 판). 비치명적 실패 반환. */
+export async function commitStats(orchestratorRoot: string): Promise<CompleteResult> {
+  const gitRoot = await resolveGitRoot(orchestratorRoot);
+  const add = await runGit(gitRoot, ['add', '--', STATS_REL]);
+  if (add.code !== 0) {
+    // 통계 파일이 아직 없으면(수집 전) 커밋할 것이 없음 — 치명적 오류 아님.
+    if (/did not match any files/i.test(add.stderr)) return { ok: false, reason: 'nothing' };
+    return { ok: false, reason: 'error', message: add.stderr.trim() };
+  }
+  const staged = await runGit(gitRoot, ['diff', '--cached', '--quiet', '--', STATS_REL]);
+  if (staged.code === 0) return { ok: false, reason: 'nothing' };
+  const date = new Date().toISOString().slice(0, 10);
+  const commit = await runGit(gitRoot, ['commit', '-m', `chore(episode-hub): 채널 통계 스냅샷 ${date}`, '--', STATS_REL]);
+  if (commit.code !== 0) return { ok: false, reason: 'error', message: commit.stderr.trim() };
+  const push = await runGit(gitRoot, ['push']);
+  if (push.code !== 0) {
+    const m = push.stderr || push.stdout;
+    if (/rejected|fetch first|non-fast-forward/i.test(m)) return { ok: false, reason: 'needsUpdate', message: '원격이 앞서 있습니다.' };
+    return { ok: false, reason: 'error', message: m.trim() };
+  }
+  return { ok: true, pushed: true };
+}
