@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { EpisodeDetail, EpisodeSummary, EpisodeDoc } from '../shared/types';
 import type { WriteTextResult, SaveRenderResult, EpisodePatch } from '../main/writer';
 import type { GitStatus, CompleteResult } from '../main/git';
+import type { ChannelStats } from '../shared/stats';
 
 const api = {
   config: {
@@ -37,6 +38,10 @@ const api = {
     status: (): Promise<GitStatus> => ipcRenderer.invoke('git:status'),
     pull: (): Promise<{ ok: true } | { ok: false; message: string }> => ipcRenderer.invoke('git:pull'),
     complete: (episodeId: string): Promise<CompleteResult> => ipcRenderer.invoke('git:complete', episodeId),
+  },
+  stats: {
+    get: (): Promise<ChannelStats> => ipcRenderer.invoke('stats:get'),
+    refresh: (): Promise<ChannelStats> => ipcRenderer.invoke('stats:refresh'),
   },
   events: {
     onEpisodesChanged: (cb: () => void): (() => void) => {

@@ -2,10 +2,12 @@ import { app, dialog, ipcMain, shell } from 'electron';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadConfig, resolveOrchestratorRoot, saveConfig } from './config';
-import { completeEpisode, fetchStatus, pullFF, restoreIfNoTextDiff, syncStatus } from './git';
+import { completeEpisode, fetchStatus, pullFF, restoreIfNoTextDiff, syncStatus, resolveGitRoot, commitStats } from './git';
+import { readStats, refreshStats } from './statsFetcher';
 import { assertEpisodeId, safeEpisodePath } from './pathGuard';
 import { scanEpisodeDetail, scanEpisodes } from './scanner';
 import { patchEpisode, saveRender, writeText, type EpisodePatch } from './writer';
+import { extractVideoId } from '@shared/stats';
 
 const DEFAULT_ROOT = 'C:\\nakgwan-channel-infra\\orchestrator';
 
@@ -13,6 +15,20 @@ export const configFile = (): string => join(app.getPath('userData'), 'hub-confi
 
 let currentRoot: string | null = null;
 export const getRoot = (): string | null => currentRoot;
+
+// 발행된 유튜브/쇼츠 URL → videoId 집합 (에피소드별 성과용). index.ts 부팅 수집과 공유.
+export function collectVideoIds(root: string): string[] {
+  const ids = new Set<string>();
+  for (const ep of scanEpisodes(root)) {
+    for (const p of ep.publications) {
+      if ((p.platform === 'youtube' || p.platform === 'shorts') && p.url) {
+        const id = extractVideoId(p.url);
+        if (id) ids.add(id);
+      }
+    }
+  }
+  return [...ids];
+}
 
 function discoverRoot(): string | null {
   const saved = loadConfig(configFile());
@@ -117,5 +133,18 @@ export function registerIpc(onRootChanged: (root: string) => void): void {
   ipcMain.handle('git:complete', (_e, episodeId: string) => {
     if (!currentRoot) throw new Error('orchestrator 루트 미설정');
     return completeEpisode(currentRoot, episodeId);
+  });
+
+  ipcMain.handle('stats:get', async () => {
+    if (!currentRoot) throw new Error('orchestrator 루트 미설정');
+    return readStats(await resolveGitRoot(currentRoot));
+  });
+
+  ipcMain.handle('stats:refresh', async () => {
+    if (!currentRoot) throw new Error('orchestrator 루트 미설정');
+    const gitRoot = await resolveGitRoot(currentRoot);
+    const stats = await refreshStats(gitRoot, currentRoot, collectVideoIds(currentRoot));
+    void commitStats(currentRoot).catch(() => {}); // 다기기 동기화 — 실패해도 로컬 보존
+    return stats;
   });
 }

@@ -1,7 +1,10 @@
 import { app, BrowserWindow, net, protocol } from 'electron';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { getRoot, registerIpc } from './ipc';
+import { getRoot, registerIpc, collectVideoIds } from './ipc';
+import { resolveGitRoot, commitStats } from './git';
+import { readStats, refreshStats } from './statsFetcher';
+import { latestSnapshot } from '@shared/stats';
 import { safeEpisodePath } from './pathGuard';
 import { startWatcher } from './watcher';
 
@@ -33,6 +36,19 @@ function createWindow() {
 let stopWatcher: (() => void) | null = null;
 let mainWin: BrowserWindow | null = null;
 
+// 부팅 자동수집 — pull은 기존 store init의 git.sync(true)가 처리. 오늘 스냅샷 없을 때만 수집(스로틀·기기간 충돌 회피).
+async function bootCollectStats(): Promise<void> {
+  const root = getRoot();
+  if (!root) return;
+  try {
+    const gitRoot = await resolveGitRoot(root);
+    const today = new Date().toISOString().slice(0, 10);
+    if (latestSnapshot(readStats(gitRoot))?.date === today) return; // 이미 오늘 수집됨
+    await refreshStats(gitRoot, root, collectVideoIds(root));
+    void commitStats(root).catch(() => {});
+  } catch { /* 부팅 수집 실패는 비치명적 */ }
+}
+
 app.whenReady().then(() => {
   protocol.handle('hub', (request) => {
     const root = getRoot();
@@ -56,6 +72,7 @@ app.whenReady().then(() => {
   });
 
   mainWin = createWindow();
+  void bootCollectStats();
 });
 
 app.on('window-all-closed', () => {
