@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { EpisodeDetail, EpisodeSummary } from '@shared/types';
+import type { ChannelStats } from '@shared/stats';
 import type { WriteTextResult, SaveRenderResult, EpisodePatch } from '../../main/writer';
 import type { GitStatus, CompleteResult } from '../../main/git';
 
@@ -11,6 +12,9 @@ interface HubState {
   gitStatus: GitStatus | null;
   /** 전역 페이지 — 첫 화면은 대시보드 (Phase D §1) */
   page: 'dashboard' | 'episode';
+  stats: ChannelStats | null;
+  loadStats: () => Promise<void>;
+  refreshStats: () => Promise<void>;
   goDashboard: () => void;
   openEpisode: (id: string) => Promise<void>;
   init: () => Promise<void>;
@@ -33,6 +37,13 @@ export const useHub = create<HubState>((set, get) => ({
   detail: null,
   gitStatus: null,
   page: 'dashboard',
+  stats: null,
+  loadStats: async () => {
+    try { set({ stats: await window.hub.stats.get() }); } catch { /* 무시 */ }
+  },
+  refreshStats: async () => {
+    try { set({ stats: await window.hub.stats.refresh() }); } catch { /* 무시 */ }
+  },
 
   goDashboard: () => set({ page: 'dashboard' }),
 
@@ -47,6 +58,7 @@ export const useHub = create<HubState>((set, get) => ({
     set({ root });
     if (root) {
       await get().refresh();
+      void get().loadStats();
       // 실행 시 자동 최신화(behind+clean이면 FF-pull) — 네트워크라 UI 블록 없이
       window.hub.git.sync(true).then((gitStatus) => set({ gitStatus })).catch(() => {});
     }

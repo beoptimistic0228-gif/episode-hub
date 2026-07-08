@@ -446,3 +446,17 @@ body {
 }
 .sns-btn:hover { background: rgba(255, 255, 255, 0.18); transform: translateY(-1px); }
 .sns-btn img { width: 20px; height: 20px; object-fit: contain; }
+
+/* Phase D+ 대시보드 확장 */
+.dash-head { display: flex; align-items: baseline; justify-content: space-between; }
+.dash-head-right { display: flex; align-items: center; gap: 12px; }
+.dash-updated { font-size: 12px; color: #888; }
+.refresh-btn { border: 1px solid #ddd; background: #fff; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+.refresh-btn:hover { background: #f5f5f5; }
+.kpi-delta { font-size: 12px; margin-left: 6px; font-variant-numeric: tabular-nums; }
+.stat-note { font-size: 12px; color: #a15; margin: 6px 0; }
+.chart-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin: 16px 0; }
+.chart-card { border: 1px solid #eee; border-radius: 12px; padding: 12px; background: #fff; }
+.chart-title { margin: 0 0 8px; font-size: 14px; }
+.chart-empty { border: 1px dashed #ddd; border-radius: 12px; padding: 24px; text-align: center; color: #999; font-size: 13px; }
+.views-tag { font-size: 12px; color: #ea4f23; font-variant-numeric: tabular-nums; margin-left: auto; }
