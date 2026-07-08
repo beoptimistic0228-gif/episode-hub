@@ -1,7 +1,7 @@
 import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fetchStatus, resolveGitRoot } from '../src/main/git';
-import { g, makeRepoWithRemote, advanceRemote } from './gitTestUtil';
+import { makeRepoWithRemote, advanceRemote } from './gitTestUtil';
 
 describe('fetchStatus', () => {
   let r: ReturnType<typeof makeRepoWithRemote>;

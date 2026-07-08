@@ -46,7 +46,7 @@ export const useHub = create<HubState>((set, get) => ({
     try { set({ stats: await window.hub.stats.get() }); } catch { /* 무시 */ }
   },
   refreshStats: async () => {
-    set({ statsRefreshing: true });
+    set({ statsRefreshing: true, statsError: null }); // 재시도 시작 시 이전 에러 즉시 해제
     try { set({ stats: await window.hub.stats.refresh(), statsError: null }); }
     catch { set({ statsError: '새로고침 실패' }); }
     finally { set({ statsRefreshing: false }); }

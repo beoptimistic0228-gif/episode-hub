@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { EpisodeDetail, FileEntry } from '@shared/types';
+import type { EpisodeDetail } from '@shared/types';
 import MarkdownView from './MarkdownView';
 import { matchPhoto, parseMasterSheet, type SkuSection } from '../lib/promptMatch';
 import { useHub } from '../store/useHub';

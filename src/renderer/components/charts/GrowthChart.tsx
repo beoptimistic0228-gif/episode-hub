@@ -22,11 +22,13 @@ export default function GrowthChart({ snapshots }: { snapshots: ChannelSnapshot[
         <LineChart data={data} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
           <XAxis dataKey="date" fontSize={11} />
-          <YAxis fontSize={11} width={44} />
+          {/* 구독자·블로그이웃은 스케일이 달라 각자 축을 둔다(한쪽이 눌려 보이지 않게) */}
+          <YAxis yAxisId="left" fontSize={11} width={44} stroke={YT} />
+          <YAxis yAxisId="right" orientation="right" fontSize={11} width={44} stroke={BLOG} />
           <Tooltip />
           <Legend />
-          <Line type="monotone" dataKey="구독자" stroke={YT} strokeWidth={2} dot={false} connectNulls />
-          <Line type="monotone" dataKey="블로그이웃" stroke={BLOG} strokeWidth={2} dot={false} connectNulls />
+          <Line yAxisId="left" type="monotone" dataKey="구독자" stroke={YT} strokeWidth={2} dot={false} connectNulls />
+          <Line yAxisId="right" type="monotone" dataKey="블로그이웃" stroke={BLOG} strokeWidth={2} dot={false} connectNulls />
         </LineChart>
       </ResponsiveContainer>
     </div>
