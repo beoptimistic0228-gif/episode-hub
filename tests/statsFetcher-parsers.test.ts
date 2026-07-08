@@ -1,5 +1,5 @@
 import {
-  parseYouTubeChannel, parseYouTubeVideos, parseNaverVisitors, parseNaverNeighbors,
+  parseYouTubeChannel, parseYouTubeVideos, parseNaverBlog,
 } from '../src/main/statsFetcher';
 
 describe('parseYouTubeChannel', () => {
@@ -24,21 +24,12 @@ describe('parseYouTubeVideos', () => {
   });
 });
 
-describe('parseNaverVisitors', () => {
-  test('오늘=마지막 항목 cnt, 총=합계', () => {
-    const xml = `<?xml version="1.0"?><visitorcnts>` +
-      `<visitorcnt id="20260707" cnt="180"/>` +
-      `<visitorcnt id="20260708" cnt="210"/></visitorcnts>`;
-    expect(parseNaverVisitors(xml)).toEqual({ today: 210, total: 390 });
+describe('parseNaverBlog', () => {
+  test('result 필드 매핑', () => {
+    const json = { isSuccess: true, result: { dayVisitorCount: 210, totalVisitorCount: 45100, subscriberCount: 320 } };
+    expect(parseNaverBlog(json)).toEqual({ neighbors: 320, visitorsTotal: 45100, visitorsToday: 210 });
   });
-});
-
-describe('parseNaverNeighbors', () => {
-  test('이웃수 추출', () => {
-    const html = `<span class="cnt">이웃 <em>320</em>명</span>`;
-    expect(parseNaverNeighbors(html)).toBe(320);
-  });
-  test('못 찾으면 throw', () => {
-    expect(() => parseNaverNeighbors('<div>없음</div>')).toThrow();
+  test('isSuccess=false면 throw', () => {
+    expect(() => parseNaverBlog({ isSuccess: false })).toThrow();
   });
 });

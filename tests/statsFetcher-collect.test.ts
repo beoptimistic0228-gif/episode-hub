@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { collectSnapshot, statsFilePath, readStats } from '../src/main/statsFetcher';
@@ -20,18 +20,17 @@ describe('collectSnapshot', () => {
     const f = fakeFetch({
       '/channels': { body: JSON.stringify({ items: [{ statistics: { subscriberCount: '12340', viewCount: '458200', videoCount: '42' } }] }) },
       '/videos': { body: JSON.stringify({ items: [{ id: 'aaaaaaaaaaa', statistics: { viewCount: '32000', likeCount: '1200' } }] }) },
-      'NVisitorgp4Ajax': { body: '<visitorcnts><visitorcnt id="20260708" cnt="210"/></visitorcnts>' },
-      'blog.naver.com/be_optimistic228': { body: '<span>이웃 320명</span>' },
+      'm.blog.naver.com/api/blogs': { body: JSON.stringify({ isSuccess: true, result: { dayVisitorCount: 210, totalVisitorCount: 45100, subscriberCount: 320 } }) },
     });
     const { snapshot, videos } = await collectSnapshot({ fetchFn: f, apiKey: 'K', today: '2026-07-08', videoIds: ['aaaaaaaaaaa'] });
     expect(snapshot.youtube).toEqual({ subscribers: 12340, views: 458200, videos: 42 });
     expect(snapshot.sources.youtube).toBe('ok');
-    expect(snapshot.blog!.visitorsToday).toBe(210);
+    expect(snapshot.blog).toEqual({ neighbors: 320, visitorsTotal: 45100, visitorsToday: 210 });
     expect(videos['aaaaaaaaaaa'].views).toBe(32000);
   });
 
   test('API 키 없음 → 유튜브 error, 블로그는 정상', async () => {
-    const f = fakeFetch({ 'NVisitorgp4Ajax': { body: '<visitorcnts><visitorcnt id="20260708" cnt="210"/></visitorcnts>' }, 'blog.naver.com': { body: '<span>이웃 320명</span>' } });
+    const f = fakeFetch({ 'm.blog.naver.com/api/blogs': { body: JSON.stringify({ isSuccess: true, result: { dayVisitorCount: 210, totalVisitorCount: 45100, subscriberCount: 320 } }) } });
     const { snapshot } = await collectSnapshot({ fetchFn: f, apiKey: null, today: '2026-07-08' });
     expect(snapshot.sources.youtube).toBe('error');
     expect(snapshot.youtube).toBeNull();
@@ -42,7 +41,7 @@ describe('collectSnapshot', () => {
     const prev: ChannelSnapshot = { date: '2026-07-07', at: 'x', youtube: null, blog: { neighbors: 300, visitorsTotal: 44000, visitorsToday: 190 }, sources: { youtube: 'error', blog: 'ok' } };
     const f = fakeFetch({
       '/channels': { body: JSON.stringify({ items: [{ statistics: { subscriberCount: '1', viewCount: '1', videoCount: '1' } }] }) },
-      'NVisitorgp4Ajax': { ok: false, body: '' },
+      'm.blog.naver.com/api/blogs': { ok: false, body: '' },
     });
     const { snapshot } = await collectSnapshot({ fetchFn: f, apiKey: 'K', today: '2026-07-08', prev });
     expect(snapshot.sources.blog).toBe('stale');

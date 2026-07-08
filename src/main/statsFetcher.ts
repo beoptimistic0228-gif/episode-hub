@@ -25,19 +25,16 @@ export function parseYouTubeVideos(json: unknown, at: string): Record<string, Vi
   return out;
 }
 
-/** 네이버 방문자 AJAX(NVisitorgp4Ajax) XML: <visitorcnt id="YYYYMMDD" cnt="N"/> 반복 */
-export function parseNaverVisitors(xml: string): { today: number; total: number } {
-  const matches = [...xml.matchAll(/<visitorcnt\b[^>]*\bcnt="(\d+)"/g)].map((m) => Number(m[1]));
-  if (matches.length === 0) throw new Error('방문자 데이터 없음');
-  const total = matches.reduce((a, b) => a + b, 0);
-  return { today: matches[matches.length - 1], total };
-}
-
-/** 이웃수 best-effort — 프로필 HTML에서 '이웃 N' 패턴. 실패 시 throw(호출측 carry-forward) */
-export function parseNaverNeighbors(html: string): number {
-  const m = html.match(/이웃[^0-9]{0,10}([0-9,]+)/);
-  if (!m) throw new Error('이웃수 파싱 실패');
-  return Number(m[1].replace(/,/g, ''));
+/** m.blog.naver.com/api/blogs/{id} JSON → BlogStat. isSuccess=false/필드부재 시 throw(호출측 carry-forward). */
+export function parseNaverBlog(json: unknown): BlogStat {
+  const j = json as { isSuccess?: boolean; result?: Record<string, unknown> };
+  if (!j?.isSuccess || !j.result) throw new Error('네이버 블로그 응답 오류');
+  const r = j.result;
+  return {
+    neighbors: num(r.subscriberCount),
+    visitorsTotal: num(r.totalVisitorCount),
+    visitorsToday: num(r.dayVisitorCount),
+  };
 }
 
 const YT = 'https://www.googleapis.com/youtube/v3';
@@ -54,11 +51,11 @@ function mockFetch(fixturePath: string): typeof fetch {
   }) as typeof fetch;
 }
 
-async function getText(fetchFn: typeof fetch, url: string): Promise<string> {
+async function getText(fetchFn: typeof fetch, url: string, headers?: Record<string, string>): Promise<string> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
-    const r = await fetchFn(url, { signal: ctrl.signal });
+    const r = await fetchFn(url, { signal: ctrl.signal, ...(headers ? { headers } : {}) });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return await r.text();
   } finally { clearTimeout(t); }
@@ -92,8 +89,10 @@ export async function collectSnapshot(
       ytStatus = 'ok';
       const ids = (deps.videoIds ?? []).slice(0, 50);
       if (ids.length) {
-        const vJson = JSON.parse(await getText(fetchFn, `${YT}/videos?part=statistics&id=${ids.join(',')}&key=${deps.apiKey}`));
-        videos = parseYouTubeVideos(vJson, at);
+        try {
+          const vJson = JSON.parse(await getText(fetchFn, `${YT}/videos?part=statistics&id=${ids.join(',')}&key=${deps.apiKey}`));
+          videos = parseYouTubeVideos(vJson, at);
+        } catch { /* 영상 배치만 실패 — 채널 통계는 유지 */ }
       }
     } catch {
       if (prev?.youtube) { youtube = prev.youtube; ytStatus = 'stale'; }
@@ -105,14 +104,12 @@ export async function collectSnapshot(
   let blog: BlogStat | null = null;
   let blogStatus: ChannelSnapshot['sources']['blog'] = 'error';
   try {
-    const vx = await getText(fetchFn, `https://blog.naver.com/NVisitorgp4Ajax.naver?blogId=${NAVER_BLOG_ID}`);
-    const { today: vToday, total: vTotal } = parseNaverVisitors(vx);
-    let neighbors = prev?.blog?.neighbors ?? 0;
-    try {
-      const html = await getText(fetchFn, `https://blog.naver.com/${NAVER_BLOG_ID}`);
-      neighbors = parseNaverNeighbors(html);
-    } catch { /* 이웃수만 실패 — 방문자는 유지 */ }
-    blog = { neighbors, visitorsTotal: vTotal, visitorsToday: vToday };
+    const url = `https://m.blog.naver.com/api/blogs/${NAVER_BLOG_ID}`;
+    const body = await getText(fetchFn, url, {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Referer': `https://m.blog.naver.com/${NAVER_BLOG_ID}`,
+    });
+    blog = parseNaverBlog(JSON.parse(body));
     blogStatus = 'ok';
   } catch {
     if (prev?.blog) { blog = prev.blog; blogStatus = 'stale'; }

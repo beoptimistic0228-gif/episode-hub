@@ -105,8 +105,7 @@ test.beforeAll(async () => {
   writeFileSync(mockFx, JSON.stringify({
     '/channels': JSON.stringify({ items: [{ statistics: { subscriberCount: '12340', viewCount: '458200', videoCount: '42' } }] }),
     '/videos': JSON.stringify({ items: [] }),
-    'NVisitorgp4Ajax': '<visitorcnts><visitorcnt id="20260708" cnt="210"/></visitorcnts>',
-    'blog.naver.com/be_optimistic228': '<span>이웃 320명</span>',
+    'm.blog.naver.com/api/blogs': JSON.stringify({ isSuccess: true, result: { dayVisitorCount: 210, totalVisitorCount: 45100, subscriberCount: 320 } }),
   }));
 
   // ── 앱 실행 ─────────────────────────────────────────────────────
