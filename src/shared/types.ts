@@ -33,6 +33,8 @@ export interface EpisodeSummary {
   publications: Publication[];
   approvals: Record<string, boolean>;
   estimateLow?: number;
+  /** 발행된 유튜브 영상의 조회수 (stats.videos 조인, Phase D+) */
+  youtubeViews?: number;
 }
 
 export interface FileEntry {

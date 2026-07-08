@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { GROUP_KEYS, type GroupKey } from '@shared/groups';
 import type { EpisodeDetail, EpisodeDoc, EpisodeSummary, FileEntry } from '@shared/types';
+import { extractVideoId, type VideoStat } from '@shared/stats';
 
 const IMAGE_EXT = /\.(png|jpe?g|webp)$/i;
 
@@ -71,12 +72,28 @@ function listGroupFiles(epDir: string, group: GroupKey): FileEntry[] {
   return out.sort((a, b) => b.mtimeMs - a.mtimeMs);
 }
 
-function summarize(root: string, id: string, files?: Record<GroupKey, FileEntry[]>): EpisodeSummary {
+function summarize(
+  root: string,
+  id: string,
+  files?: Record<GroupKey, FileEntry[]>,
+  videos?: Record<string, VideoStat>,
+): EpisodeSummary {
   const epDir = join(episodesDir(root), id);
   const { doc, error } = loadDoc(epDir);
   const groupCounts = files
     ? Object.fromEntries(GROUP_KEYS.map((g) => [g, files[g].length]))
     : Object.fromEntries(GROUP_KEYS.map((g) => [g, listGroupFiles(epDir, g).length]));
+  const pubs = doc?.publications ?? [];
+  // stats.videos 주입 시 발행 유튜브/쇼츠 URL의 조회수를 합산 (Phase D+)
+  let youtubeViews: number | undefined;
+  if (videos) {
+    for (const p of pubs) {
+      if ((p.platform === 'youtube' || p.platform === 'shorts') && p.url) {
+        const vid = extractVideoId(p.url);
+        if (vid && videos[vid]) youtubeViews = (youtubeViews ?? 0) + videos[vid].views;
+      }
+    }
+  }
   return {
     id,
     title: doc?.title || id,
@@ -84,15 +101,16 @@ function summarize(root: string, id: string, files?: Record<GroupKey, FileEntry[
     ...(error ? { error } : {}),
     groupCounts: groupCounts as Record<GroupKey, number>,
     // 대시보드용 요약 (Phase D) — 발행 기록·게이트 boolean·견적
-    publications: doc?.publications ?? [],
+    publications: pubs,
     approvals: Object.fromEntries(
       Object.entries(doc?.approvals ?? {}).map(([k, v]) => [k, v?.approved === true]),
     ),
     ...(doc?.total_estimate?.low !== undefined ? { estimateLow: doc.total_estimate.low } : {}),
+    ...(youtubeViews !== undefined ? { youtubeViews } : {}),
   };
 }
 
-export function scanEpisodes(root: string): EpisodeSummary[] {
+export function scanEpisodes(root: string, videos?: Record<string, VideoStat>): EpisodeSummary[] {
   const dir = episodesDir(root);
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
@@ -105,7 +123,7 @@ export function scanEpisodes(root: string): EpisodeSummary[] {
       }
     })
     .sort((a, b) => b.localeCompare(a)) // ep<YYYYMMDD>_… → 최신 먼저
-    .map((id) => summarize(root, id));
+    .map((id) => summarize(root, id, undefined, videos));
 }
 
 export function scanEpisodeDetail(root: string, id: string): EpisodeDetail {

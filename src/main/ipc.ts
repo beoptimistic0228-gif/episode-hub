@@ -60,8 +60,11 @@ export function registerIpc(onRootChanged: (root: string) => void): void {
     return { root: currentRoot };
   });
 
-  ipcMain.handle('episodes:list', () =>
-    currentRoot ? scanEpisodes(currentRoot) : []);
+  ipcMain.handle('episodes:list', async () => {
+    if (!currentRoot) return [];
+    const videos = readStats(await resolveGitRoot(currentRoot)).videos;
+    return scanEpisodes(currentRoot, videos);
+  });
 
   ipcMain.handle('episodes:detail', (_e, id: string) => {
     if (!currentRoot) throw new Error('orchestrator 루트 미설정');
