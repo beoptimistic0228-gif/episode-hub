@@ -33,6 +33,7 @@ let remote: string;        // bare 원격 (git 모드에서만)
 let repo: string;          // git 작업본 루트 (== gitRoot; git 모드에서만)
 let orchRoot: string;      // orchestrator 루트 (output/episodes/... fixture)
 let tempUserData: string;  // --user-data-dir (hub-config.json 저장 위치)
+let imgRoot: string;       // 이미지 동기 폴더(imageRoot) — 렌더는 여기 <imgRoot>/<id>/renders/ 로 저장
 let epDir: string;         // <orchRoot>/output/episodes/<id>
 const pageErrors: string[] = [];
 const consoleErrors: string[] = [];
@@ -97,8 +98,13 @@ test.beforeAll(async () => {
     g(repo, 'push', '-u', 'origin', 'main');
   }
 
-  // 저장 config → discoverRoot()가 fixture orchestrator 루트를 채택
-  writeFileSync(join(tempUserData, 'hub-config.json'), JSON.stringify({ orchestratorRoot: orchRoot }));
+  // 이미지 동기 폴더(imageRoot) — 렌더 저장/이미지 표시 대상. 실사용처럼 per-PC 경로를 config에 심는다.
+  // (base 하위라 afterAll의 rmSync(base)로 함께 정리된다.)
+  imgRoot = join(base, 'images');
+  mkdirSync(imgRoot, { recursive: true });
+
+  // 저장 config → discoverRoot()가 fixture orchestrator 루트를 채택 + imageRoot 채택
+  writeFileSync(join(tempUserData, 'hub-config.json'), JSON.stringify({ orchestratorRoot: orchRoot, imageRoot: imgRoot }));
 
   // 통계 mock 픽스처 — HUB_STATS_MOCK(URL 부분문자열→본문)로 실 API 없이($0·결정성) 수집 구동.
   const mockFx = join(base, 'stats-mock.json');
@@ -178,8 +184,9 @@ test('④ 렌더 드롭 저장(IPC 직접): renders/책상__row1.png가 디스�
   }, EP_ID);
   expect(res).toEqual({ ok: true, relPath: 'renders/책상__row1.png' });
 
+  // 렌더는 이제 imageRoot 아래에 저장된다: <imgRoot>/<id>/renders/책상__row1.png (레포 아님).
   // normCategory('책상')==='책상' → renders/책상__row1.png
-  const renderFile = join(epDir, 'renders', '책상__row1.png');
+  const renderFile = join(imgRoot, EP_ID, 'renders', '책상__row1.png');
   expect(existsSync(renderFile)).toBeTruthy();
   expect(readFileSync(renderFile)).toEqual(Buffer.from([1, 2, 3]));
 
