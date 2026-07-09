@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { GROUP_KEYS, type GroupKey } from '@shared/groups';
 import type { EpisodeDetail, EpisodeDoc, EpisodeSummary, FileEntry } from '@shared/types';
 import { extractVideoId, type VideoStat } from '@shared/stats';
+import { assertEpisodeId } from './pathGuard';
 
 const IMAGE_EXT = /\.(png|jpe?g|webp)$/i;
 
@@ -127,6 +128,7 @@ export function scanEpisodes(root: string, videos?: Record<string, VideoStat>): 
 }
 
 export function scanEpisodeDetail(root: string, id: string): EpisodeDetail {
+  assertEpisodeId(id); // 경로 탈출 차단 (MCP read_episode 등 외부 가드 없는 호출자 방어)
   const epDir = join(episodesDir(root), id);
   const files = Object.fromEntries(
     GROUP_KEYS.map((g) => [g, listGroupFiles(epDir, g)]),

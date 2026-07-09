@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
+import { timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { completeEpisode, resolveGitRoot } from './git';
+import { completeEpisode, resolveGitRoot, restoreIfNoTextDiff } from './git';
 import { readStats } from './statsFetcher';
 import { safeEpisodePath } from './pathGuard';
 import { scanEpisodeDetail, scanEpisodes } from './scanner';
@@ -66,13 +67,23 @@ export function registerEpisodeTools(server: McpServer, getRoot: GetRoot): void 
   server.registerTool('write_file',
     { description: '.md 파일 저장(expectedMtimeMs 주면 충돌 감지)', inputSchema: { id: z.string(), relPath: z.string(), content: z.string(), expectedMtimeMs: z.number().optional() } },
     async ({ id, relPath, content, expectedMtimeMs }) => {
-      try { return ok(writeText(requireRoot(getRoot), id, relPath, content, expectedMtimeMs)); } catch (e) { return fail(e); }
+      try {
+        const root = requireRoot(getRoot);
+        const res = writeText(root, id, relPath, content, expectedMtimeMs);
+        if ('ok' in res) await restoreIfNoTextDiff(root, id, relPath); // 내용 원복 시 유령 dirty(EOL) 제거 (ipc.ts:83 미러)
+        return ok(res);
+      } catch (e) { return fail(e); }
     });
 
   server.registerTool('patch_episode',
     { description: 'episode.json 부분 병합 — 승인 게이트·발행 기록', inputSchema: { id: z.string(), patch: patchShape } },
     async ({ id, patch }) => {
-      try { return ok(patchEpisode(requireRoot(getRoot), id, patch as EpisodePatch)); } catch (e) { return fail(e); }
+      try {
+        const root = requireRoot(getRoot);
+        const res = patchEpisode(root, id, patch as EpisodePatch);
+        await restoreIfNoTextDiff(root, id, 'episode.json'); // 승인 토글 원복 등 유령 dirty 정리 (ipc.ts:116 미러)
+        return ok(res);
+      } catch (e) { return fail(e); }
     });
 
   server.registerTool('save_render',
@@ -91,11 +102,36 @@ export function registerEpisodeTools(server: McpServer, getRoot: GetRoot): void 
     });
 }
 
+const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5 MB — 과대 본문 파싱 전 차단
+
+/** 본문 상한 초과 신호 — 핸들러가 413으로 응답(서버/트랜스포트 생성 전) */
+class PayloadTooLargeError extends Error {}
+
 async function readJsonBody(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
-  for await (const c of req) chunks.push(c as Buffer);
+  let size = 0;
+  for await (const c of req) {
+    const buf = c as Buffer;
+    size += buf.length;
+    if (size > MAX_BODY_BYTES) {
+      req.destroy(); // 수신 중단 — 나머지 바이트 소비 안 함
+      throw new PayloadTooLargeError('요청 본문이 너무 큽니다');
+    }
+    chunks.push(buf);
+  }
   const raw = Buffer.concat(chunks).toString('utf-8');
   return raw ? JSON.parse(raw) : undefined;
+}
+
+/** Bearer 토큰 상수시간 비교 — 헤더 누락·형식오류·불일치 시 false */
+function isAuthorized(req: IncomingMessage, token: string): boolean {
+  const header = req.headers.authorization;
+  if (typeof header !== 'string' || !header.startsWith('Bearer ')) return false;
+  const presented = Buffer.from(header.slice('Bearer '.length));
+  const expected = Buffer.from(token);
+  // timingSafeEqual은 길이 불일치 시 throw — 사전 길이 체크로 회피(길이 노출은 무해)
+  if (presented.length !== expected.length) return false;
+  return timingSafeEqual(presented, expected);
 }
 
 export interface BridgeHandle { port: number; stop: () => Promise<void> }
@@ -111,7 +147,7 @@ export function startMcpBridge(opts: {
   const httpServer: Server = createServer((req, res) => {
     void (async () => {
       if ((req.url ?? '').split('?')[0] !== path) { res.writeHead(404).end(); return; }
-      if (req.headers.authorization !== `Bearer ${opts.token}`) {
+      if (!isAuthorized(req, opts.token)) {
         res.writeHead(401, { 'content-type': 'application/json' }).end(JSON.stringify({ error: 'unauthorized' }));
         return;
       }
@@ -125,9 +161,12 @@ export function startMcpBridge(opts: {
         await server.connect(transport);
         await transport.handleRequest(req, res, body);
       } catch (e) {
-        if (!res.headersSent) {
-          res.writeHead(500, { 'content-type': 'application/json' }).end(JSON.stringify({ error: String((e as Error)?.message ?? e) }));
+        if (res.headersSent) return;
+        if (e instanceof PayloadTooLargeError) {
+          res.writeHead(413, { 'content-type': 'application/json' }).end(JSON.stringify({ error: 'payload too large' }));
+          return;
         }
+        res.writeHead(500, { 'content-type': 'application/json' }).end(JSON.stringify({ error: String((e as Error)?.message ?? e) }));
       }
     })();
   });

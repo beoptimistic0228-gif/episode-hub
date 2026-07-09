@@ -59,6 +59,12 @@ describe('episode tools (MCP)', () => {
     expect((res as { isError?: boolean }).isError).toBe(true);
   });
 
+  test('read_episode 경로 탈출 id 는 isError 로 거부', async () => {
+    const c = await connect(r.base);
+    const res = await c.callTool({ name: 'read_episode', arguments: { id: '../../../..' } });
+    expect((res as { isError?: boolean }).isError).toBe(true);
+  });
+
   test('patch_episode 승인 게이트 기록', async () => {
     const c = await connect(r.base);
     const res = await c.callTool({ name: 'patch_episode', arguments: { id: r.ep, patch: { approve: { key: 'script_final' } } } });

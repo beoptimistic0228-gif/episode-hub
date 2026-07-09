@@ -81,8 +81,9 @@ app.whenReady().then(() => {
       bridge = await startMcpBridge({ getRoot, token, port: MCP_PORT });
       const root = getRoot();
       if (root) writeMcpJson(await resolveGitRoot(root), bridge.port, token);
-    } catch {
-      /* 포트 사용중·git 루트 미발견 등 — 브리지만 스킵, 앱은 정상 */
+    } catch (e) {
+      // 포트 사용중·git 루트 미발견 등 — 브리지만 스킵, 앱은 정상 (토큰은 e에 미포함)
+      console.error('[mcp-bridge] start skipped:', e);
     }
   })();
 
