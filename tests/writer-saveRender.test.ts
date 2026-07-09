@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, existsSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, existsSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { saveRender } from '../src/main/writer';

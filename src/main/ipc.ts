@@ -1,7 +1,7 @@
 import { app, dialog, ipcMain, shell } from 'electron';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { loadConfig, resolveOrchestratorRoot, saveConfig } from './config';
+import { loadConfig, resolveOrchestratorRoot, updateConfig } from './config';
 import { completeEpisode, fetchStatus, pullFF, restoreIfNoTextDiff, syncStatus, resolveGitRoot, commitStats } from './git';
 import { readStats, refreshStats } from './statsFetcher';
 import { assertEpisodeId, safeEpisodePath } from './pathGuard';
@@ -15,6 +15,9 @@ export const configFile = (): string => join(app.getPath('userData'), 'hub-confi
 
 let currentRoot: string | null = null;
 export const getRoot = (): string | null => currentRoot;
+
+let currentImageRoot: string | null = null;
+export const getImageRoot = (): string | null => currentImageRoot;
 
 // 발행된 유튜브/쇼츠 URL → videoId 집합 (에피소드별 성과용). index.ts 부팅 수집과 공유.
 export function collectVideoIds(root: string): string[] {
@@ -41,9 +44,10 @@ function discoverRoot(): string | null {
 
 export function registerIpc(onRootChanged: (root: string) => void): void {
   currentRoot = discoverRoot();
+  currentImageRoot = loadConfig(configFile())?.imageRoot ?? null;
   if (currentRoot) onRootChanged(currentRoot);
 
-  ipcMain.handle('config:get', () => ({ root: currentRoot }));
+  ipcMain.handle('config:get', () => ({ root: currentRoot, imageRoot: currentImageRoot }));
 
   ipcMain.handle('config:pickRoot', async () => {
     const res = await dialog.showOpenDialog({
@@ -53,11 +57,24 @@ export function registerIpc(onRootChanged: (root: string) => void): void {
     const picked = res.filePaths[0];
     if (picked && existsSync(join(picked, 'output', 'episodes'))) {
       currentRoot = picked;
-      saveConfig(configFile(), { orchestratorRoot: picked });
+      updateConfig(configFile(), { orchestratorRoot: picked });
       onRootChanged(picked);
       return { root: picked };
     }
     return { root: currentRoot };
+  });
+
+  ipcMain.handle('config:pickImageRoot', async () => {
+    const res = await dialog.showOpenDialog({
+      title: '이미지 동기 폴더 선택 (Google Drive 등)',
+      properties: ['openDirectory'],
+    });
+    const picked = res.filePaths[0];
+    if (picked) {
+      currentImageRoot = picked;
+      updateConfig(configFile(), { imageRoot: picked });
+    }
+    return { imageRoot: currentImageRoot };
   });
 
   ipcMain.handle('episodes:list', async () => {
@@ -69,7 +86,7 @@ export function registerIpc(onRootChanged: (root: string) => void): void {
   ipcMain.handle('episodes:detail', (_e, id: string) => {
     if (!currentRoot) throw new Error('orchestrator 루트 미설정');
     assertEpisodeId(id);
-    return scanEpisodeDetail(currentRoot, id);
+    return scanEpisodeDetail(currentRoot, id, currentImageRoot);
   });
 
   ipcMain.handle('files:readText', (_e, id: string, relPath: string) => {
@@ -105,8 +122,8 @@ export function registerIpc(onRootChanged: (root: string) => void): void {
   });
 
   ipcMain.handle('renders:save', (_e, id: string, category: string, row: string, bytes: ArrayBuffer, overwrite?: boolean) => {
-    if (!currentRoot) throw new Error('orchestrator 루트 미설정');
-    return saveRender(currentRoot, id, category, row, new Uint8Array(bytes), overwrite);
+    if (!currentImageRoot) throw new Error('이미지 폴더 미설정 — 먼저 이미지 동기 폴더를 선택하세요');
+    return saveRender(currentImageRoot, id, category, row, new Uint8Array(bytes), overwrite);
   });
 
   ipcMain.handle('episode:patch', async (_e, id: string, patch: EpisodePatch) => {
