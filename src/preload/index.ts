@@ -6,8 +6,9 @@ import type { ChannelStats } from '../shared/stats';
 
 const api = {
   config: {
-    get: (): Promise<{ root: string | null }> => ipcRenderer.invoke('config:get'),
+    get: (): Promise<{ root: string | null; imageRoot: string | null }> => ipcRenderer.invoke('config:get'),
     pickRoot: (): Promise<{ root: string | null }> => ipcRenderer.invoke('config:pickRoot'),
+    pickImageRoot: (): Promise<{ imageRoot: string | null }> => ipcRenderer.invoke('config:pickImageRoot'),
   },
   episodes: {
     list: (): Promise<EpisodeSummary[]> => ipcRenderer.invoke('episodes:list'),

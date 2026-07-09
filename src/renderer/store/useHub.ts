@@ -6,6 +6,7 @@ import type { GitStatus, CompleteResult } from '../../main/git';
 
 interface HubState {
   root: string | null;
+  imageRoot: string | null;
   episodes: EpisodeSummary[];
   selectedId: string | null;
   detail: EpisodeDetail | null;
@@ -23,6 +24,7 @@ interface HubState {
   refresh: () => Promise<void>;
   select: (id: string) => Promise<void>;
   pickRoot: () => Promise<void>;
+  pickImageRoot: () => Promise<void>;
   writeText: (relPath: string, content: string, expectedMtimeMs?: number) => Promise<WriteTextResult>;
   saveRender: (category: string, row: string, bytes: ArrayBuffer, overwrite?: boolean) => Promise<SaveRenderResult>;
   patchEpisode: (patch: EpisodePatch) => Promise<void>;
@@ -34,6 +36,7 @@ interface HubState {
 
 export const useHub = create<HubState>((set, get) => ({
   root: null,
+  imageRoot: null,
   episodes: [],
   selectedId: null,
   detail: null,
@@ -61,12 +64,11 @@ export const useHub = create<HubState>((set, get) => ({
   },
 
   init: async () => {
-    const { root } = await window.hub.config.get();
-    set({ root });
+    const { root, imageRoot } = await window.hub.config.get();
+    set({ root, imageRoot });
     if (root) {
       await get().refresh();
       void get().loadStats();
-      // 실행 시 자동 최신화(behind+clean이면 FF-pull) — 네트워크라 UI 블록 없이
       window.hub.git.sync(true).then((gitStatus) => set({ gitStatus })).catch(() => {});
     }
   },
@@ -95,6 +97,14 @@ export const useHub = create<HubState>((set, get) => ({
       await get().refresh();
       await get().refreshGitLocal();
     }
+  },
+
+  pickImageRoot: async () => {
+    const { imageRoot } = await window.hub.config.pickImageRoot();
+    set({ imageRoot });
+    // 상세 이미지 목록·썸네일 재해석
+    const { selectedId } = get();
+    if (selectedId) await get().select(selectedId);
   },
 
   writeText: async (relPath, content, expectedMtimeMs) => {
