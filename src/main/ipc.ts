@@ -87,7 +87,7 @@ export function registerIpc(onRootChanged: (root: string) => void): void {
   ipcMain.handle('episodes:list', async () => {
     if (!currentRoot) return [];
     const videos = readStats(await resolveGitRoot(currentRoot)).videos;
-    return scanEpisodes(currentRoot, videos);
+    return scanEpisodes(currentRoot, videos, currentImageRoot);
   });
 
   ipcMain.handle('episodes:detail', (_e, id: string) => {

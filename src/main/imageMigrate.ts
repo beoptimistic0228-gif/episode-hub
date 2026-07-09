@@ -9,7 +9,9 @@ export function migrateImagesToImageRoot(root: string, imageRoot: string): { cop
   const epsDir = join(root, 'output', 'episodes');
   if (!existsSync(epsDir)) return { copied: 0 };
   let copied = 0;
-  for (const id of readdirSync(epsDir)) {
+  let ids: string[];
+  try { ids = readdirSync(epsDir); } catch { return { copied: 0 }; } // 권한·삭제 레이스 — 크래시 대신 0
+  for (const id of ids) {
     const epDir = join(epsDir, id);
     let isDir = false;
     try { isDir = statSync(epDir).isDirectory(); } catch { continue; }

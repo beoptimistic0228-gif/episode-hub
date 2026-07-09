@@ -42,7 +42,7 @@ export function registerEpisodeTools(server: McpServer, getRoot: GetRoot, getIma
       try {
         const root = requireRoot(getRoot);
         const videos = readStats(await resolveGitRoot(root)).videos;
-        return ok(scanEpisodes(root, videos));
+        return ok(scanEpisodes(root, videos, getImageRoot()));
       } catch (e) { return fail(e); }
     });
 

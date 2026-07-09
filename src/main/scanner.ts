@@ -73,9 +73,17 @@ function walkGroup(baseDir: string, group: GroupKey): FileEntry[] {
   return out;
 }
 
-/** 그룹 파일 목록 (mtime 내림차순) — 레포 에피소드 폴더 기준 */
-function listGroupFiles(epDir: string, group: GroupKey): FileEntry[] {
-  return walkGroup(epDir, group).sort((a, b) => b.mtimeMs - a.mtimeMs);
+/**
+ * 그룹 파일 목록(mtime 내림차순). imageRoot 지정 시 이미지는 imageRoot의 <id>/<group>에서,
+ * 레포는 비이미지만 취한다. 미지정 시 레포 전체(하위호환). scanEpisodes(목록 카운트)와
+ * scanEpisodeDetail(상세 목록)이 동일 규칙을 쓰게 공용화 — 사이드바 배지와 상세가 어긋나지 않는다.
+ */
+function mergedGroupFiles(epDir: string, id: string, group: GroupKey, imageRoot?: string | null): FileEntry[] {
+  const repo = walkGroup(epDir, group);
+  if (!imageRoot) return repo.sort((a, b) => b.mtimeMs - a.mtimeMs); // 하위호환: 레포 이미지 유지
+  const repoNonImage = repo.filter((f) => f.kind !== 'image');
+  const images = walkGroup(join(imageRoot, id), group).filter((f) => f.kind === 'image');
+  return [...images, ...repoNonImage].sort((a, b) => b.mtimeMs - a.mtimeMs);
 }
 
 function summarize(
@@ -83,12 +91,13 @@ function summarize(
   id: string,
   files?: Record<GroupKey, FileEntry[]>,
   videos?: Record<string, VideoStat>,
+  imageRoot?: string | null,
 ): EpisodeSummary {
   const epDir = join(episodesDir(root), id);
   const { doc, error } = loadDoc(epDir);
   const groupCounts = files
     ? Object.fromEntries(GROUP_KEYS.map((g) => [g, files[g].length]))
-    : Object.fromEntries(GROUP_KEYS.map((g) => [g, listGroupFiles(epDir, g).length]));
+    : Object.fromEntries(GROUP_KEYS.map((g) => [g, mergedGroupFiles(epDir, id, g, imageRoot).length]));
   const pubs = doc?.publications ?? [];
   // stats.videos 주입 시 발행 유튜브/쇼츠 URL의 조회수를 합산 (Phase D+)
   let youtubeViews: number | undefined;
@@ -116,7 +125,7 @@ function summarize(
   };
 }
 
-export function scanEpisodes(root: string, videos?: Record<string, VideoStat>): EpisodeSummary[] {
+export function scanEpisodes(root: string, videos?: Record<string, VideoStat>, imageRoot?: string | null): EpisodeSummary[] {
   const dir = episodesDir(root);
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
@@ -129,21 +138,14 @@ export function scanEpisodes(root: string, videos?: Record<string, VideoStat>): 
       }
     })
     .sort((a, b) => b.localeCompare(a)) // ep<YYYYMMDD>_… → 최신 먼저
-    .map((id) => summarize(root, id, undefined, videos));
+    .map((id) => summarize(root, id, undefined, videos, imageRoot));
 }
 
 export function scanEpisodeDetail(root: string, id: string, imageRoot?: string | null): EpisodeDetail {
   assertEpisodeId(id); // 경로 탈출 차단 (MCP read_episode 등 외부 가드 없는 호출자 방어)
   const epDir = join(episodesDir(root), id);
   const files = Object.fromEntries(
-    GROUP_KEYS.map((g) => {
-      const repo = walkGroup(epDir, g);
-      if (!imageRoot) return [g, repo.sort((a, b) => b.mtimeMs - a.mtimeMs)]; // 하위호환: 레포 이미지 유지
-      // imageRoot 설정 시: 레포는 비이미지만, 이미지는 imageRoot의 <id>/<group>에서
-      const repoNonImage = repo.filter((f) => f.kind !== 'image');
-      const images = walkGroup(join(imageRoot, id), g).filter((f) => f.kind === 'image');
-      return [g, [...images, ...repoNonImage].sort((a, b) => b.mtimeMs - a.mtimeMs)];
-    }),
+    GROUP_KEYS.map((g) => [g, mergedGroupFiles(epDir, id, g, imageRoot)]),
   ) as Record<GroupKey, FileEntry[]>;
   const summary = summarize(root, id, files);
   const { doc } = loadDoc(epDir);

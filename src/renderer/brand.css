@@ -268,6 +268,13 @@ body {
 .thumb-grid figure:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .thumb-grid img { width: 100%; height: 140px; object-fit: cover; display: block; }
 .thumb-grid figcaption { font-size: 11px; color: var(--ink-mute); padding: 6px 8px; word-break: break-all; }
+/* 미동기 이미지 플레이스홀더 (hub:// 404 → <img onError>) — 깨진 이미지 아이콘 대체 */
+.thumb-grid .thumb-missing { border-style: dashed; }
+.thumb-placeholder {
+  display: flex; align-items: center; justify-content: center;
+  height: 140px; padding: 0 8px; text-align: center;
+  font-size: 12px; color: var(--ink-mute); background: var(--canvas);
+}
 
 /* ─ 렌더 작업대 ─ */
 .seg { display: inline-flex; background: var(--surface-tint); border-radius: var(--r-pill); padding: 3px; gap: 2px; margin-bottom: 16px; }
