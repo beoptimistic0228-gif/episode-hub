@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
+import { createServer, type IncomingMessage, type Server } from 'node:http';
 import { z } from 'zod';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { completeEpisode, resolveGitRoot } from './git';
 import { readStats } from './statsFetcher';
 import { safeEpisodePath } from './pathGuard';
@@ -87,4 +89,56 @@ export function registerEpisodeTools(server: McpServer, getRoot: GetRoot): void 
     async ({ id }) => {
       try { return ok(await completeEpisode(requireRoot(getRoot), id)); } catch (e) { return fail(e); }
     });
+}
+
+async function readJsonBody(req: IncomingMessage): Promise<unknown> {
+  const chunks: Buffer[] = [];
+  for await (const c of req) chunks.push(c as Buffer);
+  const raw = Buffer.concat(chunks).toString('utf-8');
+  return raw ? JSON.parse(raw) : undefined;
+}
+
+export interface BridgeHandle { port: number; stop: () => Promise<void> }
+
+/** 127.0.0.1 에 stateless Streamable HTTP MCP 서버를 띄운다. Bearer 토큰 검증. */
+export function startMcpBridge(opts: {
+  getRoot: GetRoot;
+  token: string;
+  port: number;
+  path?: string;
+}): Promise<BridgeHandle> {
+  const path = opts.path ?? '/mcp';
+  const httpServer: Server = createServer((req, res) => {
+    void (async () => {
+      if ((req.url ?? '').split('?')[0] !== path) { res.writeHead(404).end(); return; }
+      if (req.headers.authorization !== `Bearer ${opts.token}`) {
+        res.writeHead(401, { 'content-type': 'application/json' }).end(JSON.stringify({ error: 'unauthorized' }));
+        return;
+      }
+      if (req.method !== 'POST') { res.writeHead(405).end(); return; } // stateless: GET/DELETE 미지원
+      try {
+        const body = await readJsonBody(req);
+        const server = new McpServer({ name: 'episode-hub', version: '0.1.0' });
+        registerEpisodeTools(server, opts.getRoot);
+        const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+        res.on('close', () => { void transport.close(); void server.close(); });
+        await server.connect(transport);
+        await transport.handleRequest(req, res, body);
+      } catch (e) {
+        if (!res.headersSent) {
+          res.writeHead(500, { 'content-type': 'application/json' }).end(JSON.stringify({ error: String((e as Error)?.message ?? e) }));
+        }
+      }
+    })();
+  });
+  return new Promise((resolve, reject) => {
+    const onErr = (e: unknown) => reject(e);
+    httpServer.once('error', onErr);
+    httpServer.listen(opts.port, '127.0.0.1', () => {
+      httpServer.removeListener('error', onErr);
+      const addr = httpServer.address();
+      const port = typeof addr === 'object' && addr ? addr.port : opts.port;
+      resolve({ port, stop: () => new Promise<void>((r) => httpServer.close(() => r())) });
+    });
+  });
 }

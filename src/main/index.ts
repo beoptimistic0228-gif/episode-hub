@@ -7,6 +7,8 @@ import { readStats, refreshStats } from './statsFetcher';
 import { latestSnapshot } from '@shared/stats';
 import { safeEpisodePath } from './pathGuard';
 import { startWatcher } from './watcher';
+import { loadOrCreateToken, writeMcpJson, MCP_PORT } from './mcpBridge';
+import { startMcpBridge, type BridgeHandle } from './mcpServer';
 
 // hub://<episodeId>/<relPath> → <root>/output/episodes/<id>/<relPath> (이미지 표시용)
 protocol.registerSchemesAsPrivileged([
@@ -35,6 +37,7 @@ function createWindow() {
 
 let stopWatcher: (() => void) | null = null;
 let mainWin: BrowserWindow | null = null;
+let bridge: BridgeHandle | null = null;
 
 // 부팅 자동수집 — pull은 기존 store init의 git.sync(true)가 처리. 오늘 스냅샷 없을 때만 수집(스로틀·기기간 충돌 회피).
 async function bootCollectStats(): Promise<void> {
@@ -72,10 +75,25 @@ app.whenReady().then(() => {
     });
   });
 
+  void (async () => {
+    try {
+      const token = loadOrCreateToken(join(app.getPath('userData'), 'mcp-bridge.json'));
+      bridge = await startMcpBridge({ getRoot, token, port: MCP_PORT });
+      const root = getRoot();
+      if (root) writeMcpJson(await resolveGitRoot(root), bridge.port, token);
+    } catch {
+      /* 포트 사용중·git 루트 미발견 등 — 브리지만 스킵, 앱은 정상 */
+    }
+  })();
+
   mainWin = createWindow();
   void bootCollectStats();
 });
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('will-quit', () => {
+  void bridge?.stop();
 });
