@@ -44,9 +44,11 @@
     }
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "chokidar": "^3.6.0",
     "marked": "^12.0.0",
     "recharts": "^2.15.4",
+    "zod": "^4.4.3",
     "zustand": "^4.5.4"
   },
   "devDependencies": {
