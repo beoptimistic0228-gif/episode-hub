@@ -41,6 +41,11 @@
       "createDesktopShortcut": true,
       "shortcutName": "Episode Hub",
       "artifactName": "EpisodeHub-Setup-${version}.${ext}"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "beoptimistic0228-gif",
+      "repo": "nakgwan-channel-infra"
     }
   },
   "dependencies": {
