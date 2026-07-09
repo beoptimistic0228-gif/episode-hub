@@ -1,11 +1,12 @@
 import { app, BrowserWindow, net, protocol } from 'electron';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { getRoot, registerIpc, collectVideoIds } from './ipc';
+import { existsSync } from 'node:fs';
+import { getRoot, registerIpc, collectVideoIds, getImageRoot } from './ipc';
 import { resolveGitRoot, commitStats } from './git';
 import { readStats, refreshStats } from './statsFetcher';
 import { latestSnapshot } from '@shared/stats';
-import { safeEpisodePath } from './pathGuard';
+import { safeEpisodePath, resolveImagePath } from './pathGuard';
 import { startWatcher } from './watcher';
 import { loadOrCreateToken, writeMcpJson, MCP_PORT } from './mcpBridge';
 import { startMcpBridge, type BridgeHandle } from './mcpServer';
@@ -66,14 +67,25 @@ async function syncMcpJson(root: string, token: string): Promise<void> {
 
 app.whenReady().then(() => {
   protocol.handle('hub', (request) => {
-    const root = getRoot();
-    if (!root) return new Response('no root', { status: 404 });
     const u = new URL(request.url);
     const id = u.host;
     const rel = decodeURIComponent(u.pathname.replace(/^\//, ''));
+    const imageRoot = getImageRoot();
+    // 이미지: imageRoot 우선. 아직 동기 안 됐거나 미설정이면 레포(비디오 등 잔여 미디어) 폴백.
+    if (imageRoot) {
+      try {
+        const p = resolveImagePath(imageRoot, id, rel);
+        if (existsSync(p)) return net.fetch(pathToFileURL(p).toString());
+      } catch {
+        return new Response('forbidden', { status: 403 });
+      }
+    }
+    const root = getRoot();
+    if (!root) return new Response('no root', { status: 404 });
     try {
-      const filePath = safeEpisodePath(root, id, rel);
-      return net.fetch(pathToFileURL(filePath).toString());
+      const p = safeEpisodePath(root, id, rel);
+      if (!existsSync(p)) return new Response('not synced', { status: 404 });
+      return net.fetch(pathToFileURL(p).toString());
     } catch {
       return new Response('forbidden', { status: 403 });
     }
@@ -92,7 +104,7 @@ app.whenReady().then(() => {
 
   void (async () => {
     try {
-      bridge = await startMcpBridge({ getRoot, token: mcpToken, port: MCP_PORT });
+      bridge = await startMcpBridge({ getRoot, token: mcpToken, port: MCP_PORT, getImageRoot });
     } catch (e) {
       // 포트 사용중·git 루트 미발견 등 — 브리지만 스킵, 앱은 정상 (토큰은 e에 미포함)
       console.error('[mcp-bridge] start skipped:', e);
