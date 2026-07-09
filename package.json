@@ -1,6 +1,6 @@
 {
   "name": "episode-hub",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Episode Hub — 누구의 공간 산출물 에피소드별 관리 데스크톱 앱",
   "author": "nakgwan",
   "main": "./out/main/index.js",

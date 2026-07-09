@@ -53,6 +53,17 @@ async function bootCollectStats(): Promise<void> {
   } catch { /* 부팅 수집 실패는 비치명적 */ }
 }
 
+// 루트가 유효해질 때마다 .mcp.json 갱신(부팅 해석·폴더 선택 양쪽 경로). 포트는 고정
+// MCP_PORT, 토큰은 idempotent라 브리지 기동 상태와 무관하게 쓸 수 있다.
+async function syncMcpJson(root: string, token: string): Promise<void> {
+  try {
+    writeMcpJson(await resolveGitRoot(root), MCP_PORT, token);
+  } catch (e) {
+    // 비-git 폴더·git 미설치 등 — .mcp.json만 스킵, 앱은 정상
+    console.error('[mcp-bridge] .mcp.json write skipped:', e);
+  }
+}
+
 app.whenReady().then(() => {
   protocol.handle('hub', (request) => {
     const root = getRoot();
@@ -68,19 +79,20 @@ app.whenReady().then(() => {
     }
   });
 
+  const mcpToken = loadOrCreateToken(join(app.getPath('userData'), 'mcp-bridge.json'));
+
   registerIpc((root) => {
     stopWatcher?.();
     stopWatcher = startWatcher(root, () => {
       mainWin?.webContents.send('episodes:changed');
     });
+    // 루트 확정(부팅 해석·폴더 선택) 즉시 .mcp.json 기록 — 패키지 첫 실행 재시작 불필요
+    void syncMcpJson(root, mcpToken);
   });
 
   void (async () => {
     try {
-      const token = loadOrCreateToken(join(app.getPath('userData'), 'mcp-bridge.json'));
-      bridge = await startMcpBridge({ getRoot, token, port: MCP_PORT });
-      const root = getRoot();
-      if (root) writeMcpJson(await resolveGitRoot(root), bridge.port, token);
+      bridge = await startMcpBridge({ getRoot, token: mcpToken, port: MCP_PORT });
     } catch (e) {
       // 포트 사용중·git 루트 미발견 등 — 브리지만 스킵, 앱은 정상 (토큰은 e에 미포함)
       console.error('[mcp-bridge] start skipped:', e);
