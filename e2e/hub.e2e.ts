@@ -299,5 +299,6 @@ test('⑨ 대시보드: 새로고침 → 통계(구독자) 표시', async () => 
   await expect(page.locator('.stat-tile').first()).toBeVisible();
   await page.getByRole('button', { name: /새로고침/ }).click();
   await expect(page.getByText('12,340')).toBeVisible();     // 구독자 (mock subscriberCount)
-  await expect(page.getByText('구독자')).toBeVisible();
+  // '구독자'는 stat 타일 라벨과 차트 범례 양쪽에 있으므로 stat 타일 라벨로 스코프(strict-mode 위반 회피).
+  await expect(page.locator('.stat-label', { hasText: '구독자' })).toBeVisible();
 });
