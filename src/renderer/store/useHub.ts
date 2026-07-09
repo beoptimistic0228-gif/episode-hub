@@ -25,6 +25,7 @@ interface HubState {
   select: (id: string) => Promise<void>;
   pickRoot: () => Promise<void>;
   pickImageRoot: () => Promise<void>;
+  migrateImages: () => Promise<number>;
   writeText: (relPath: string, content: string, expectedMtimeMs?: number) => Promise<WriteTextResult>;
   saveRender: (category: string, row: string, bytes: ArrayBuffer, overwrite?: boolean) => Promise<SaveRenderResult>;
   patchEpisode: (patch: EpisodePatch) => Promise<void>;
@@ -105,6 +106,13 @@ export const useHub = create<HubState>((set, get) => ({
     // 상세 이미지 목록·썸네일 재해석
     const { selectedId } = get();
     if (selectedId) await get().select(selectedId);
+  },
+
+  migrateImages: async () => {
+    const { copied } = await window.hub.images.migrate();
+    const { selectedId } = get();
+    if (selectedId) await get().select(selectedId);
+    return copied;
   },
 
   writeText: async (relPath, content, expectedMtimeMs) => {

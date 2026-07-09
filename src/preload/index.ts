@@ -30,6 +30,9 @@ const api = {
     save: (id: string, category: string, row: string, bytes: ArrayBuffer, overwrite?: boolean): Promise<SaveRenderResult> =>
       ipcRenderer.invoke('renders:save', id, category, row, bytes, overwrite),
   },
+  images: {
+    migrate: (): Promise<{ copied: number }> => ipcRenderer.invoke('images:migrate'),
+  },
   episode: {
     patch: (id: string, patch: EpisodePatch): Promise<{ ok: true; doc: EpisodeDoc }> =>
       ipcRenderer.invoke('episode:patch', id, patch),

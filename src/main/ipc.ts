@@ -7,6 +7,7 @@ import { readStats, refreshStats } from './statsFetcher';
 import { assertEpisodeId, safeEpisodePath } from './pathGuard';
 import { scanEpisodeDetail, scanEpisodes } from './scanner';
 import { patchEpisode, saveRender, writeText, type EpisodePatch } from './writer';
+import { migrateImagesToImageRoot } from './imageMigrate';
 import { extractVideoId } from '@shared/stats';
 
 const DEFAULT_ROOT = 'C:\\nakgwan-channel-infra\\orchestrator';
@@ -75,6 +76,12 @@ export function registerIpc(onRootChanged: (root: string) => void): void {
       updateConfig(configFile(), { imageRoot: picked });
     }
     return { imageRoot: currentImageRoot };
+  });
+
+  ipcMain.handle('images:migrate', () => {
+    if (!currentRoot) throw new Error('orchestrator 루트 미설정');
+    if (!currentImageRoot) throw new Error('이미지 폴더 미설정');
+    return migrateImagesToImageRoot(currentRoot, currentImageRoot);
   });
 
   ipcMain.handle('episodes:list', async () => {

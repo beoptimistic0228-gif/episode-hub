@@ -11,7 +11,7 @@ const SNS = [
 ];
 
 export default function Sidebar() {
-  const { episodes, selectedId, openEpisode, pickRoot, pickImageRoot, root, imageRoot, gitStatus, gitPull, page, goDashboard } = useHub();
+  const { episodes, selectedId, openEpisode, pickRoot, pickImageRoot, migrateImages, root, imageRoot, gitStatus, gitPull, page, goDashboard } = useHub();
   const chip = (() => {
     const s = gitStatus;
     if (!s || s.state === 'error') return { cls: 'warn', text: s?.message ? 'git: ' + s.message : 'git 사용 불가' };
@@ -58,6 +58,22 @@ export default function Sidebar() {
           <button className="btn-pill secondary sm" onClick={pickImageRoot} title={imageRoot ?? '이미지 동기 폴더 미설정'}>
             {imageRoot ? '이미지 폴더 ✓' : '이미지 폴더'}
           </button>
+          {imageRoot && (
+            <button
+              className="btn-pill secondary sm"
+              title="레포의 기존 이미지를 이미지 폴더로 1회 복사"
+              onClick={async () => {
+                try {
+                  const n = await migrateImages();
+                  alert(`이미지 ${n}개를 이미지 폴더로 복사했어요.`);
+                } catch (e) {
+                  alert('이관 오류: ' + String(e));
+                }
+              }}
+            >
+              이미지 이관
+            </button>
+          )}
           <button
             className="btn-pill secondary sm"
             onClick={async () => {
