@@ -45,7 +45,7 @@
     "publish": {
       "provider": "github",
       "owner": "beoptimistic0228-gif",
-      "repo": "nakgwan-channel-infra",
+      "repo": "episode-hub",
       "releaseType": "release"
     }
   },
