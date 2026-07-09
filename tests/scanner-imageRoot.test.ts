@@ -1,7 +1,7 @@
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { scanEpisodeDetail } from '../src/main/scanner';
+import { scanEpisodeDetail, scanEpisodes } from '../src/main/scanner';
 
 const ID = 'ep20260709_img';
 const GOOD_DOC = JSON.stringify({ schema_version: 1, title: 'T', stage: '', approvals: {} });
@@ -50,5 +50,23 @@ describe('scanEpisodeDetail — imageRoot 병합', () => {
     const missing = join(imageRoot, 'nope');
     const d = scanEpisodeDetail(root, ID, missing);
     expect(d.files.renders.map((f) => f.name)).toEqual(['notes.md']);
+  });
+
+  test('scanEpisodes 목록 카운트도 imageRoot 반영(레포 이미지 제외·imageRoot 이미지 포함)', () => {
+    const ep = makeEp(root);
+    writeFileSync(join(ep, 'renders', 'repo_old.png'), 'x'); // 레포 이미지 — 카운트 제외
+    writeFileSync(join(ep, 'renders', 'notes.md'), '# n');   // 레포 텍스트 — 카운트 포함
+    mkdirSync(join(imageRoot, ID, 'renders'), { recursive: true });
+    writeFileSync(join(imageRoot, ID, 'renders', 'synced.png'), 'y'); // imageRoot 이미지 — 카운트 포함
+
+    const list = scanEpisodes(root, undefined, imageRoot);
+    expect(list).toHaveLength(1);
+    expect(list[0].groupCounts.renders).toBe(2); // notes.md + synced.png (repo_old.png 제외)
+  });
+
+  test('scanEpisodes imageRoot 미지정 시 레포 이미지 카운트 유지(하위호환)', () => {
+    const ep = makeEp(root);
+    writeFileSync(join(ep, 'renders', 'repo_old.png'), 'x');
+    expect(scanEpisodes(root)[0].groupCounts.renders).toBe(1);
   });
 });
