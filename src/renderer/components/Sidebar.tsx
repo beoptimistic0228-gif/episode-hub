@@ -11,7 +11,7 @@ const SNS = [
 ];
 
 export default function Sidebar() {
-  const { episodes, selectedId, openEpisode, pickRoot, root, gitStatus, gitPull, page, goDashboard } = useHub();
+  const { episodes, selectedId, openEpisode, pickRoot, pickImageRoot, root, imageRoot, gitStatus, gitPull, page, goDashboard } = useHub();
   const chip = (() => {
     const s = gitStatus;
     if (!s || s.state === 'error') return { cls: 'warn', text: s?.message ? 'git: ' + s.message : 'git 사용 불가' };
@@ -55,6 +55,9 @@ export default function Sidebar() {
         <div className="root-path">{root ?? 'orchestrator 미연결'}</div>
         <div className="footer-actions">
           <button className="btn-pill secondary sm" onClick={pickRoot}>폴더 변경</button>
+          <button className="btn-pill secondary sm" onClick={pickImageRoot} title={imageRoot ?? '이미지 동기 폴더 미설정'}>
+            {imageRoot ? '이미지 폴더 ✓' : '이미지 폴더'}
+          </button>
           <button
             className="btn-pill secondary sm"
             onClick={async () => {
