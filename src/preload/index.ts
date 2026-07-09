@@ -6,8 +6,9 @@ import type { ChannelStats } from '../shared/stats';
 
 const api = {
   config: {
-    get: (): Promise<{ root: string | null }> => ipcRenderer.invoke('config:get'),
+    get: (): Promise<{ root: string | null; imageRoot: string | null }> => ipcRenderer.invoke('config:get'),
     pickRoot: (): Promise<{ root: string | null }> => ipcRenderer.invoke('config:pickRoot'),
+    pickImageRoot: (): Promise<{ imageRoot: string | null }> => ipcRenderer.invoke('config:pickImageRoot'),
   },
   episodes: {
     list: (): Promise<EpisodeSummary[]> => ipcRenderer.invoke('episodes:list'),
@@ -28,6 +29,9 @@ const api = {
   renders: {
     save: (id: string, category: string, row: string, bytes: ArrayBuffer, overwrite?: boolean): Promise<SaveRenderResult> =>
       ipcRenderer.invoke('renders:save', id, category, row, bytes, overwrite),
+  },
+  images: {
+    migrate: (): Promise<{ copied: number }> => ipcRenderer.invoke('images:migrate'),
   },
   episode: {
     patch: (id: string, patch: EpisodePatch): Promise<{ ok: true; doc: EpisodeDoc }> =>

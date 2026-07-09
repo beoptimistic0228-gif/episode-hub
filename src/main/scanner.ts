@@ -34,9 +34,9 @@ function loadDoc(epDir: string): { doc: EpisodeDoc | null; error?: string } {
   }
 }
 
-/** 그룹 폴더의 파일 목록 (하위 폴더 1단계 포함 — publish/thumbnails 등), mtime 내림차순 */
-function listGroupFiles(epDir: string, group: GroupKey): FileEntry[] {
-  const dir = join(epDir, group);
+/** 그룹 폴더를 1단계 하위까지 걷는다(publish/thumbnails 등). _deprecated 제외. 정렬은 호출측. */
+function walkGroup(baseDir: string, group: GroupKey): FileEntry[] {
+  const dir = join(baseDir, group);
   if (!existsSync(dir)) return [];
   const out: FileEntry[] = [];
   const walk = (d: string, prefix: string) => {
@@ -70,7 +70,12 @@ function listGroupFiles(epDir: string, group: GroupKey): FileEntry[] {
     }
   };
   walk(dir, '');
-  return out.sort((a, b) => b.mtimeMs - a.mtimeMs);
+  return out;
+}
+
+/** 그룹 파일 목록 (mtime 내림차순) — 레포 에피소드 폴더 기준 */
+function listGroupFiles(epDir: string, group: GroupKey): FileEntry[] {
+  return walkGroup(epDir, group).sort((a, b) => b.mtimeMs - a.mtimeMs);
 }
 
 function summarize(
@@ -127,11 +132,18 @@ export function scanEpisodes(root: string, videos?: Record<string, VideoStat>): 
     .map((id) => summarize(root, id, undefined, videos));
 }
 
-export function scanEpisodeDetail(root: string, id: string): EpisodeDetail {
+export function scanEpisodeDetail(root: string, id: string, imageRoot?: string | null): EpisodeDetail {
   assertEpisodeId(id); // 경로 탈출 차단 (MCP read_episode 등 외부 가드 없는 호출자 방어)
   const epDir = join(episodesDir(root), id);
   const files = Object.fromEntries(
-    GROUP_KEYS.map((g) => [g, listGroupFiles(epDir, g)]),
+    GROUP_KEYS.map((g) => {
+      const repo = walkGroup(epDir, g);
+      if (!imageRoot) return [g, repo.sort((a, b) => b.mtimeMs - a.mtimeMs)]; // 하위호환: 레포 이미지 유지
+      // imageRoot 설정 시: 레포는 비이미지만, 이미지는 imageRoot의 <id>/<group>에서
+      const repoNonImage = repo.filter((f) => f.kind !== 'image');
+      const images = walkGroup(join(imageRoot, id), g).filter((f) => f.kind === 'image');
+      return [g, [...images, ...repoNonImage].sort((a, b) => b.mtimeMs - a.mtimeMs)];
+    }),
   ) as Record<GroupKey, FileEntry[]>;
   const summary = summarize(root, id, files);
   const { doc } = loadDoc(epDir);

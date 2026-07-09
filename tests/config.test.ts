@@ -1,7 +1,7 @@
 import { mkdtempSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { resolveOrchestratorRoot, loadConfig, saveConfig } from '../src/main/config';
+import { resolveOrchestratorRoot, loadConfig, saveConfig, updateConfig } from '../src/main/config';
 
 function makeOrch(base: string, name: string): string {
   const root = join(base, name);
@@ -42,5 +42,23 @@ test('config save/load 라운드트립 + 없는 파일 null', () => {
   expect(loadConfig(file)).toBeNull();
   saveConfig(file, { orchestratorRoot: 'C:\\x\\orchestrator' });
   expect(loadConfig(file)).toEqual({ orchestratorRoot: 'C:\\x\\orchestrator' });
+  rmSync(base, { recursive: true, force: true });
+});
+
+test('loadConfig — imageRoot 보존', () => {
+  const base = mkdtempSync(join(tmpdir(), 'hub-img-'));
+  const file = join(base, 'c.json');
+  saveConfig(file, { orchestratorRoot: 'C:\\x\\orchestrator', imageRoot: 'G:\\Drive\\img' });
+  expect(loadConfig(file)).toEqual({ orchestratorRoot: 'C:\\x\\orchestrator', imageRoot: 'G:\\Drive\\img' });
+  rmSync(base, { recursive: true, force: true });
+});
+
+test('updateConfig — 기존 orchestratorRoot 보존하며 imageRoot 병합', () => {
+  const base = mkdtempSync(join(tmpdir(), 'hub-upd-'));
+  const file = join(base, 'c.json');
+  saveConfig(file, { orchestratorRoot: 'C:\\x\\orchestrator' });
+  const merged = updateConfig(file, { imageRoot: 'G:\\Drive\\img' });
+  expect(merged).toEqual({ orchestratorRoot: 'C:\\x\\orchestrator', imageRoot: 'G:\\Drive\\img' });
+  expect(loadConfig(file)).toEqual(merged); // 디스크에도 병합 저장
   rmSync(base, { recursive: true, force: true });
 });

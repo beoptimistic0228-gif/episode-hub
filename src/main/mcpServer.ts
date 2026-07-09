@@ -35,7 +35,7 @@ const patchShape = z.object({
 });
 
 /** 8개 에피소드 tool을 MCP 서버에 등록한다. 모두 기존 순수 함수를 가드 경유로 호출. */
-export function registerEpisodeTools(server: McpServer, getRoot: GetRoot): void {
+export function registerEpisodeTools(server: McpServer, getRoot: GetRoot, getImageRoot: GetRoot = () => null): void {
   server.registerTool('list_episodes',
     { description: '모든 에피소드 요약(단계·그룹 수·발행·견적·조회수) 목록', inputSchema: {} },
     async () => {
@@ -49,7 +49,7 @@ export function registerEpisodeTools(server: McpServer, getRoot: GetRoot): void 
   server.registerTool('read_episode',
     { description: '특정 에피소드 상세(그룹별 파일·episode.json)', inputSchema: { id: z.string().describe('ep<YYYYMMDD>_<slug>') } },
     async ({ id }) => {
-      try { return ok(scanEpisodeDetail(requireRoot(getRoot), id)); } catch (e) { return fail(e); }
+      try { return ok(scanEpisodeDetail(requireRoot(getRoot), id, getImageRoot())); } catch (e) { return fail(e); }
     });
 
   server.registerTool('read_file',
@@ -90,8 +90,10 @@ export function registerEpisodeTools(server: McpServer, getRoot: GetRoot): void 
     { description: 'SKU 렌더 이미지 저장(base64) → renders/<카테고리>__<row>.png', inputSchema: { id: z.string(), category: z.string(), row: z.string(), bytesBase64: z.string().describe('PNG 바이트의 base64'), overwrite: z.boolean().optional() } },
     async ({ id, category, row, bytesBase64, overwrite }) => {
       try {
+        const imageRoot = getImageRoot();
+        if (!imageRoot) throw new Error('이미지 폴더 미설정 — 이미지 동기 폴더를 먼저 선택하세요');
         const bytes = new Uint8Array(Buffer.from(bytesBase64, 'base64'));
-        return ok(saveRender(requireRoot(getRoot), id, category, row, bytes, overwrite));
+        return ok(saveRender(imageRoot, id, category, row, bytes, overwrite));
       } catch (e) { return fail(e); }
     });
 
@@ -142,6 +144,7 @@ export function startMcpBridge(opts: {
   token: string;
   port: number;
   path?: string;
+  getImageRoot?: GetRoot;
 }): Promise<BridgeHandle> {
   const path = opts.path ?? '/mcp';
   const httpServer: Server = createServer((req, res) => {
@@ -155,7 +158,7 @@ export function startMcpBridge(opts: {
       try {
         const body = await readJsonBody(req);
         const server = new McpServer({ name: 'episode-hub', version: '0.1.0' });
-        registerEpisodeTools(server, opts.getRoot);
+        registerEpisodeTools(server, opts.getRoot, opts.getImageRoot);
         const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
         res.on('close', () => { void transport.close(); void server.close(); });
         await server.connect(transport);

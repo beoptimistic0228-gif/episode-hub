@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { safeEpisodePath } from './pathGuard';
+import { resolveImagePath, safeEpisodePath } from './pathGuard';
 import { normCategory, PLATFORMS, RENDER_ROWS, type Publication } from '@shared/episode';
 import type { EpisodeDoc } from '@shared/types';
 
@@ -46,9 +46,9 @@ export function writeText(
 
 export type SaveRenderResult = { ok: true; relPath: string } | { exists: true };
 
-/** 드롭된 SKU 렌더 이미지를 renders/<정규화 카테고리>__<row>.png 로 저장 */
+/** 드롭된 SKU 렌더 이미지를 imageRoot의 <id>/renders/<정규화 카테고리>__<row>.png 로 저장 */
 export function saveRender(
-  root: string,
+  imageRoot: string,
   id: string,
   category: string,
   row: string,
@@ -59,7 +59,7 @@ export function saveRender(
     throw new Error(`잘못된 row: ${row}`);
   }
   const relPath = `renders/${normCategory(category)}__${row}.png`;
-  const full = safeEpisodePath(root, id, relPath);
+  const full = resolveImagePath(imageRoot, id, relPath);
   if (existsSync(full) && overwrite !== true) return { exists: true };
   mkdirSync(dirname(full), { recursive: true });
   atomicWrite(full, bytes);

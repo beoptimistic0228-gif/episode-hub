@@ -7,6 +7,24 @@ import PromptsWorkbench from './PromptsWorkbench';
 const hubUrl = (id: string, relPath: string) =>
   `hub://${id}/${relPath.split('/').map(encodeURIComponent).join('/')}`;
 
+function Thumb({ id, file }: { id: string; file: FileEntry }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <figure className="thumb-missing">
+        <div className="thumb-placeholder">⏳ 아직 동기 안 됨</div>
+        <figcaption>{file.name}</figcaption>
+      </figure>
+    );
+  }
+  return (
+    <figure>
+      <img src={hubUrl(id, file.relPath)} alt={file.name} loading="lazy" onError={() => setFailed(true)} />
+      <figcaption>{file.name}</figcaption>
+    </figure>
+  );
+}
+
 export default function GroupDetail({
   detail, group,
 }: { detail: EpisodeDetail; group: GroupKey }) {
@@ -50,10 +68,7 @@ export default function GroupDetail({
           {images.length > 0 && (
             <div className="thumb-grid">
               {images.map((f) => (
-                <figure key={f.relPath}>
-                  <img src={hubUrl(detail.id, f.relPath)} alt={f.name} loading="lazy" />
-                  <figcaption>{f.name}</figcaption>
-                </figure>
+                <Thumb key={f.relPath} id={detail.id} file={f} />
               ))}
             </div>
           )}

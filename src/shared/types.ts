@@ -1,7 +1,7 @@
 import type { GroupKey } from './groups';
 import type { ApprovalRecord, Publication } from './episode';
 
-export interface HubConfig { orchestratorRoot: string }
+export interface HubConfig { orchestratorRoot: string; imageRoot?: string }
 
 export interface ProductItem {
   phase: number;

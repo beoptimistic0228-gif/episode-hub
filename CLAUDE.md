@@ -22,8 +22,10 @@
 ## MCP 브리지 (AI→앱, v0.2.0)
 앱 기동 시 `127.0.0.1:7801`에 HTTP MCP 서버(Bearer 토큰, 콘텐츠 레포 루트에 gitignored `.mcp.json` 자동생성). tool 8종(`list_episodes`·`read_episode`·`read_file`·`get_channel_stats`·`write_file`·`patch_episode`·`save_render`·`git_complete`)으로 Claude Code가 에피소드 읽기/쓰기. 핵심: `src/main/mcpBridge.ts`(토큰·`.mcp.json`)·`src/main/mcpServer.ts`(HTTP 서버·tool). `.mcp.json`은 루트 확정 시점(`onRootChanged`)마다 기록.
 
+## 이미지 공유 (클라우드 드라이브 동기, v0.3)
+글자는 콘텐츠 레포 git, **이미지만** per-PC `imageRoot`(Google Drive 등 동기 로컬 폴더)로 공유. 경로 구조 `<imageRoot>/<id>/<groupRel>`(레포보다 한 단계 얕음 — `output/episodes` 세그먼트 없음). 저장 `saveRender`·표시 `hub://`(imageRoot 우선, 레포 폴백)·상세 `scanEpisodeDetail`(imageRoot 이미지 병합)이 `imageRoot` 경유. **하위호환: `imageRoot` 미설정 시 레포 이미지 유지**(무중단 과도기). 핵심: `src/main/pathGuard.ts`(`resolveImagePath`)·`src/main/imageMigrate.ts`(레포→imageRoot 1회 이관). 설정은 사이드바 "이미지 폴더"/"이미지 이관" 버튼. 설계 `docs/superpowers/specs/2026-07-09-episode-hub-image-sync-design.md`, 계획 `docs/superpowers/plans/2026-07-09-episode-hub-image-sync.md`.
+
 ## 다음
-- **이미지 공유**(Google Drive 동기 폴더 — `imageRoot` per-PC 설정): 글자는 콘텐츠 레포 git, 이미지만 드라이브 동기 폴더로. 설계 `docs/superpowers/specs/2026-07-09-episode-hub-image-sync-design.md`.
 - **Phase E2**(앱→AI): 앱이 headless `claude`를 spawn해 파이프라인/질의 구동, E1 HTTP 서버 재사용.
 
 ## 커밋

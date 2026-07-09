@@ -25,7 +25,10 @@ export function resolveOrchestratorRoot(
 export function loadConfig(file: string): HubConfig | null {
   try {
     const cfg = JSON.parse(readFileSync(file, 'utf-8'));
-    return typeof cfg?.orchestratorRoot === 'string' ? { orchestratorRoot: cfg.orchestratorRoot } : null;
+    if (typeof cfg?.orchestratorRoot !== 'string') return null;
+    const out: HubConfig = { orchestratorRoot: cfg.orchestratorRoot };
+    if (typeof cfg.imageRoot === 'string') out.imageRoot = cfg.imageRoot;
+    return out;
   } catch {
     return null;
   }
@@ -34,6 +37,16 @@ export function loadConfig(file: string): HubConfig | null {
 export function saveConfig(file: string, cfg: HubConfig): void {
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, JSON.stringify(cfg, null, 2), 'utf-8');
+}
+
+/** 기존 config에 patch를 병합해 저장. orchestratorRoot가 없으면(신규+patch에도 없음) throw. */
+export function updateConfig(file: string, patch: Partial<HubConfig>): HubConfig {
+  const existing = loadConfig(file);
+  const orchestratorRoot = patch.orchestratorRoot ?? existing?.orchestratorRoot;
+  if (!orchestratorRoot) throw new Error('orchestratorRoot 미설정 상태에서 config 병합 불가');
+  const merged: HubConfig = { ...existing, ...patch, orchestratorRoot };
+  saveConfig(file, merged);
+  return merged;
 }
 
 /**

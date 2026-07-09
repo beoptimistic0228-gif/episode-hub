@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -16,9 +16,9 @@ function makeRoot() {
   return { base, ep };
 }
 
-async function connect(root: string | null) {
+async function connect(root: string | null, imageRoot: string | null = null) {
   const server = new McpServer({ name: 'test', version: '0.0.0' });
-  registerEpisodeTools(server, () => root);
+  registerEpisodeTools(server, () => root, () => imageRoot);
   const [ct, st] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: 'c', version: '0.0.0' });
   await Promise.all([server.connect(st), client.connect(ct)]);
@@ -75,6 +75,23 @@ describe('episode tools (MCP)', () => {
   test('루트 미설정이면 isError', async () => {
     const c = await connect(null);
     const res = await c.callTool({ name: 'list_episodes', arguments: {} });
+    expect((res as { isError?: boolean }).isError).toBe(true);
+  });
+
+  test('save_render 는 imageRoot/<id>/renders 에 저장', async () => {
+    const imageRoot = mkdtempSync(join(tmpdir(), 'mcp-img-'));
+    const c = await connect(r.base, imageRoot);
+    const b64 = Buffer.from([1, 2, 3]).toString('base64');
+    const res = await c.callTool({ name: 'save_render', arguments: { id: r.ep, category: '책상', row: 'row1', bytesBase64: b64 } });
+    expect(textOf(res)).toContain('renders/책상__row1.png');
+    expect(existsSync(join(imageRoot, r.ep, 'renders', '책상__row1.png'))).toBe(true);
+    rmSync(imageRoot, { recursive: true, force: true });
+  });
+
+  test('save_render 는 imageRoot 미설정 시 isError', async () => {
+    const c = await connect(r.base); // imageRoot null
+    const b64 = Buffer.from([1]).toString('base64');
+    const res = await c.callTool({ name: 'save_render', arguments: { id: r.ep, category: '책상', row: 'row1', bytesBase64: b64 } });
     expect((res as { isError?: boolean }).isError).toBe(true);
   });
 });

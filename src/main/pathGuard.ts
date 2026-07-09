@@ -17,3 +17,14 @@ export function safeEpisodePath(root: string, id: string, relPath: string): stri
   }
   return full;
 }
+
+/** <imageRoot>/<id>/<relPath> 안으로 고정 — 이미지 전용(레포와 달리 output/episodes 세그먼트 없음) */
+export function resolveImagePath(imageRoot: string, id: string, relPath: string): string {
+  assertEpisodeId(id);
+  const base = join(imageRoot, id);
+  const full = normalize(join(base, relPath));
+  if (!full.startsWith(base + sep) && full !== base) {
+    throw new Error(`이미지 경로 이탈 차단: ${relPath}`);
+  }
+  return full;
+}
