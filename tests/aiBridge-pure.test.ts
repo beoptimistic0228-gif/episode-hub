@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  READ_TOOLS, buildPrompt, buildAskArgs, parseStreamLine, writeAiMcpConfig,
+  READ_TOOLS, ASK_TOOLS, buildPrompt, buildAskArgs, parseStreamLine, writeAiMcpConfig,
 } from '../src/main/aiBridge';
 
 describe('buildPrompt', () => {
@@ -16,10 +16,15 @@ describe('buildPrompt', () => {
   test('이어묻기(resume)는 질문만 그대로 보낸다', () => {
     expect(buildPrompt('ep-x', '더 싼 대안은?', false)).toBe('더 싼 대안은?');
   });
+  test('프리앰블에 propose_edit 제안 지침 포함(직접 쓰기 금지)', () => {
+    const p = buildPrompt('ep-x', '콘티 고쳐줘', true);
+    expect(p).toContain('propose_edit');
+    expect(p).toContain('직접 고치지 말고');
+  });
 });
 
 describe('buildAskArgs', () => {
-  test('읽기 4종 잠금 + 쓰기·셸 도구 차단 + strict mcp-config', () => {
+  test('읽기 4종 + 제안 도구(E3) 잠금 + 쓰기·셸 도구 차단 + strict mcp-config', () => {
     const args = buildAskArgs({ mcpConfigPath: 'C:/x/ai-mcp.json' });
     expect(args).toContain('-p');
     expect(args).toContain('--output-format');
@@ -27,7 +32,8 @@ describe('buildAskArgs', () => {
     expect(args).toContain('--verbose');
     expect(args).toContain('--strict-mcp-config');
     const allowed = args[args.indexOf('--allowedTools') + 1];
-    expect(allowed).toBe(READ_TOOLS.join(','));
+    expect(allowed).toBe(ASK_TOOLS.join(','));
+    expect(allowed).toContain('mcp__episode-hub__propose_edit'); // E3 — 제안 1종만 추가
     expect(allowed).not.toMatch(/write_file|patch_episode|save_render|git_complete/);
     const denied = args[args.indexOf('--disallowedTools') + 1];
     expect(denied).toContain('Bash');

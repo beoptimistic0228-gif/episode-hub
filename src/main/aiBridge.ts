@@ -12,16 +12,25 @@ export const READ_TOOLS = [
   'mcp__episode-hub__get_channel_stats',
 ] as const;
 
+/** E3 — 제안 스테이징 도구. 실제 저장은 승인 후 앱(main)이 하므로 쓰기 권한이 아니다.
+ *  진짜 쓰기 MCP 도구(write_file 등)와 내장 도구 차단(DENY_TOOLS)은 E2 그대로. */
+export const PROPOSE_TOOL = 'mcp__episode-hub__propose_edit';
+export const ASK_TOOLS = [...READ_TOOLS, PROPOSE_TOOL] as const;
+
 /** 내장 쓰기·셸·네트워크 + 로컬 파일 읽기(Read/Glob/Grep/Task) 도구를 차단 —
  *  스폰된 claude는 MCP(episode-hub) 밖 임의 로컬 파일에 접근하면 안 된다. */
 const DENY_TOOLS = 'Bash,Write,Edit,NotebookEdit,WebFetch,WebSearch,Read,Glob,Grep,Task';
 
 export interface AskEvent {
-  kind: 'init' | 'text' | 'tool' | 'result' | 'error' | 'done';
+  kind: 'init' | 'text' | 'tool' | 'result' | 'error' | 'done' | 'propose';
   text?: string;
   tool?: string;
   sessionId?: string;
   episodeId?: string;
+  itemId?: string;   // propose 전용
+  relPath?: string;  // propose 전용
+  reason?: string;   // propose 전용
+  isNew?: boolean;   // propose 전용
 }
 
 export function buildPrompt(episodeId: string, question: string, isNewSession: boolean): string {
@@ -32,6 +41,8 @@ export function buildPrompt(episodeId: string, question: string, isNewSession: b
     'episode-hub MCP 도구(read_episode·read_file 등)로 실제 데이터를 읽고 답하세요.',
     '- 제품·가격 숫자는 에피소드 데이터에서 인용만 하고, 추측으로 만들지 마세요.',
     '- 비개발자 부부가 읽습니다. 쉬운 한국어로 답하세요.',
+    '- 수정 지시를 받으면 파일을 직접 고치지 말고 propose_edit 도구로 수정안을 제안하세요.',
+    '  파일 전체의 새 내용을 제출하고, 지시받지 않은 파일은 제안하지 마세요. 제안은 부부가 앱에서 승인해야 저장됩니다.',
     '',
     `질문: ${question}`,
   ].join('\n');
@@ -43,7 +54,7 @@ export function buildAskArgs(opts: { mcpConfigPath: string; resumeSessionId?: st
     '-p',
     '--output-format', 'stream-json', '--verbose',
     '--mcp-config', opts.mcpConfigPath, '--strict-mcp-config',
-    '--allowedTools', READ_TOOLS.join(','),
+    '--allowedTools', ASK_TOOLS.join(','),
     '--disallowedTools', DENY_TOOLS,
   ];
   // resumeSessionId는 shell:true 아래 argv로 흘러가므로 세션 id 문자셋만 허용(주입 방어).
@@ -112,9 +123,13 @@ export class AiBridge {
   private child: SpawnLike | null = null;
   private sessions = new Map<string, string>();
   private killedByUs = false;
+  private current: string | null = null;
   constructor(private deps: AiBridgeDeps) {}
 
   busy(): boolean { return this.child !== null; }
+
+  /** 진행 중 ask의 에피소드 id — propose_edit 검증(mcpServer extras)용 */
+  activeEpisode(): string | null { return this.child ? this.current : null; }
 
   ask(episodeId: string, question: string): { ok: true } | { ok: false; message: string } {
     if (this.child) return { ok: false, message: '이미 답변 중이에요. 끝나면 다시 물어봐 주세요.' };
@@ -122,6 +137,7 @@ export class AiBridge {
     const args = buildAskArgs({ mcpConfigPath: this.deps.mcpConfigPath, resumeSessionId: resume });
     const child = this.deps.spawnImpl(args);
     this.child = child;
+    this.current = episodeId;
     this.killedByUs = false;
 
     // 이 질문의 모든 이벤트에 에피소드 id를 스탬프 — 리마운트된 다른 에피소드 패널로 새지 않도록.
@@ -162,6 +178,7 @@ export class AiBridge {
       settled = true;
       clearTimeout(timer);
       this.child = null;
+      this.current = null;
       if (!sawResult && code !== 0 && !this.killedByUs) {
         // 만료 세션 resume 실패 등 — 세션 폐기해 다음 질문은 새 세션으로
         if (resume) this.sessions.delete(episodeId);
