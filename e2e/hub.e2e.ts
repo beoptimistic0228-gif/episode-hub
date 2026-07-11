@@ -117,7 +117,7 @@ test.beforeAll(async () => {
   // ── 앱 실행 ─────────────────────────────────────────────────────
   app = await electron.launch({
     args: [MAIN, `--user-data-dir=${tempUserData}`],
-    env: { ...process.env, HUB_STATS_MOCK: mockFx, YOUTUBE_API_KEY: 'TESTKEY' },
+    env: { ...process.env, HUB_STATS_MOCK: mockFx, YOUTUBE_API_KEY: 'TESTKEY', HUB_CLAUDE_BIN: join(__dirname, 'stub', 'claude.cmd') },
   });
   page = await app.firstWindow();
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
@@ -301,4 +301,19 @@ test('⑨ 대시보드: 새로고침 → 통계(구독자) 표시', async () => 
   await expect(page.getByText('12,340')).toBeVisible();     // 구독자 (mock subscriberCount)
   // '구독자'는 stat 타일 라벨과 차트 범례 양쪽에 있으므로 stat 타일 라벨로 스코프(strict-mode 위반 회피).
   await expect(page.locator('.stat-label', { hasText: '구독자' })).toBeVisible();
+});
+
+// ── E2 "에피소드에게 물어보기": 스텁 claude로 질문→답변 흐름 ─────────────────────
+test('⑩ Claude 질문: 스텁 claude로 질문 → 답변 말풍선 표시', async () => {
+  // ⑨는 대시보드에 머문다 → 에피소드 상세로 재진입(①-b와 동일 진입 로케이터).
+  await page.locator('.ep-card', { hasText: 'E2E 룸' }).click();
+  await page.waitForSelector('nav.tab-bar'); // 에피소드 화면 진입 → AskClaude 패널 마운트
+
+  // HUB_CLAUDE_BIN이 스텁을 가리키므로 ai:status.available=true → 입력창이 뜬다(불가 안내 아님).
+  const input = page.locator('.ask-input');
+  await expect(input).toBeVisible();
+  await input.fill('예산 얼마야?');
+  await input.press('Enter');
+  await expect(page.locator('.ask-bubble.user').last()).toHaveText('예산 얼마야?');
+  await expect(page.locator('.ask-bubble.assistant').last()).toContainText('667,250원', { timeout: 15000 });
 });
