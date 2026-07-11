@@ -3,6 +3,7 @@ import type { EpisodeDetail, EpisodeSummary, EpisodeDoc } from '../shared/types'
 import type { WriteTextResult, SaveRenderResult, EpisodePatch } from '../main/writer';
 import type { GitStatus, CompleteResult } from '../main/git';
 import type { ChannelStats } from '../shared/stats';
+import type { AskEvent } from '../main/aiBridge';
 
 const api = {
   config: {
@@ -57,6 +58,18 @@ const api = {
       const listener = () => cb();
       ipcRenderer.on('stats:changed', listener);
       return () => ipcRenderer.removeListener('stats:changed', listener);
+    },
+  },
+  ai: {
+    status: (): Promise<{ available: boolean }> => ipcRenderer.invoke('ai:status'),
+    ask: (episodeId: string, question: string): Promise<{ ok: boolean; message?: string }> =>
+      ipcRenderer.invoke('ai:ask', episodeId, question),
+    cancel: (): Promise<{ ok: true }> => ipcRenderer.invoke('ai:cancel'),
+    reset: (episodeId: string): Promise<{ ok: true }> => ipcRenderer.invoke('ai:reset', episodeId),
+    onStream: (cb: (ev: AskEvent) => void): (() => void) => {
+      const listener = (_e: unknown, ev: AskEvent) => cb(ev);
+      ipcRenderer.on('ai:stream', listener);
+      return () => ipcRenderer.removeListener('ai:stream', listener);
     },
   },
 };

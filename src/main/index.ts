@@ -10,6 +10,7 @@ import { safeEpisodePath, resolveImagePath } from './pathGuard';
 import { startWatcher } from './watcher';
 import { loadOrCreateToken, writeMcpJson, MCP_PORT } from './mcpBridge';
 import { startMcpBridge, type BridgeHandle } from './mcpServer';
+import { registerAiIpc } from './aiIpc';
 
 // hub://<episodeId>/<relPath> → <root>/output/episodes/<id>/<relPath> (이미지 표시용)
 protocol.registerSchemesAsPrivileged([
@@ -110,6 +111,9 @@ app.whenReady().then(() => {
       console.error('[mcp-bridge] start skipped:', e);
     }
   })();
+
+  const aiIpc = registerAiIpc({ userDataDir: app.getPath('userData'), port: MCP_PORT, token: mcpToken });
+  app.on('before-quit', () => aiIpc.dispose());
 
   mainWin = createWindow();
   void bootCollectStats();
