@@ -317,3 +317,28 @@ test('⑩ Claude 질문: 스텁 claude로 질문 → 답변 말풍선 표시', a
   await expect(page.locator('.ask-bubble.user').last()).toHaveText('예산 얼마야?');
   await expect(page.locator('.ask-bubble.assistant').last()).toContainText('667,250원', { timeout: 15000 });
 });
+
+// ── E3 제안→승인→적용: 스텁이 propose_edit를 실제 호출 → 카드 → 적용 → 디스크 검증 ──────
+test('⑪ E3 수정 지시: 제안 카드 → 선택 적용 → 파일 반영', async () => {
+  // ⑩이 stub-session-1을 남겼음 — resume이면 프리앰블(에피소드 id)이 없어 스텁이 실패하므로 새 대화로 시작.
+  await page.getByRole('button', { name: '새 대화' }).click();
+  const input = page.locator('.ask-input');
+  await input.fill('콘티 고쳐줘');
+  await input.press('Enter');
+
+  const card = page.locator('.proposal-card').last();
+  await expect(card).toBeVisible({ timeout: 15000 });
+  await expect(card).toContainText('script/콘티.md');
+  await expect(card).toContainText('더 유쾌한 톤으로 정리');
+
+  // 파일명 클릭 → 줄 diff 표시(추가 행 존재)
+  await card.locator('.proposal-file').click();
+  await expect(page.locator('.diff-view .diff-row.add').first()).toBeVisible();
+
+  // 기본 전체 체크 상태 → 적용 → 디스크 반영 + 카드 상태 갱신
+  await card.getByRole('button', { name: '선택한 파일 적용' }).click();
+  await expect
+    .poll(() => readFileSync(join(epDir, 'script', '콘티.md'), 'utf-8'))
+    .toBe('# 콘티\n\nE2E-PROPOSED\n');
+  await expect(card).toContainText('적용됨');
+});
