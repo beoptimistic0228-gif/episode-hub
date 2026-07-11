@@ -18,6 +18,7 @@ export default function AskClaude({ episodeId }: { episodeId: string }) {
   }, []);
 
   useEffect(() => window.hub.ai.onStream((ev: AskEvent) => {
+    if (ev.kind === 'done') setBusy(false);        // busy는 전역 — 필터보다 먼저
     if (ev.episodeId !== episodeId) return; // 다른 에피소드의 진행 중 이벤트는 무시
     if (ev.kind === 'tool') setStep('에피소드 읽는 중…');
     if (ev.kind === 'text') { setStep(null); liveRef.current += ev.text ?? ''; setLive(liveRef.current); }
