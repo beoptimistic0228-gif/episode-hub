@@ -88,6 +88,7 @@ test('cancel → 프로세스 kill + done', async () => {
   await tick();
   expect(spawned[0].child.killed).toBe(true);
   expect(events[events.length - 1].kind).toBe('done');
+  expect(events.some((e) => e.kind === 'error')).toBe(false);
 });
 
 test('타임아웃: timeoutMs 동안 stdout 무출력 → kill + error', async () => {
@@ -98,7 +99,7 @@ test('타임아웃: timeoutMs 동안 stdout 무출력 → kill + error', async (
   vi.useRealTimers();
   await tick();
   expect(spawned[0].child.killed).toBe(true);
-  expect(events.some((e) => e.kind === 'error')).toBe(true);
+  expect(events.filter((e) => e.kind === 'error')).toHaveLength(1);
 });
 
 test('resume 실행이 실패(exit≠0)하면 세션을 폐기 — 다음 질문은 새 세션', async () => {

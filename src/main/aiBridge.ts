@@ -102,6 +102,7 @@ const DEFAULT_TIMEOUT_MS = 120_000;
 export class AiBridge {
   private child: SpawnLike | null = null;
   private sessions = new Map<string, string>();
+  private killedByUs = false;
   constructor(private deps: AiBridgeDeps) {}
 
   busy(): boolean { return this.child !== null; }
@@ -112,12 +113,14 @@ export class AiBridge {
     const args = buildAskArgs({ mcpConfigPath: this.deps.mcpConfigPath, resumeSessionId: resume });
     const child = this.deps.spawnImpl(args);
     this.child = child;
+    this.killedByUs = false;
 
     const timeoutMs = this.deps.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     let timer = setTimeout(onTimeout, timeoutMs);
     const bump = () => { clearTimeout(timer); timer = setTimeout(onTimeout, timeoutMs); };
     const self = this;
     function onTimeout() {
+      self.killedByUs = true;
       self.deps.onEvent({ kind: 'error', text: '응답이 없어 중단했어요. 다시 시도해 주세요.' });
       child.kill();
     }
@@ -142,7 +145,7 @@ export class AiBridge {
     child.on('close', (code) => {
       clearTimeout(timer);
       this.child = null;
-      if (!sawResult && code !== 0) {
+      if (!sawResult && code !== 0 && !this.killedByUs) {
         // 만료 세션 resume 실패 등 — 세션 폐기해 다음 질문은 새 세션으로
         if (resume) this.sessions.delete(episodeId);
         this.deps.onEvent({ kind: 'error', text: `Claude 실행이 실패했어요. ${stderrTail || `(exit ${code})`}` });
@@ -153,7 +156,12 @@ export class AiBridge {
     return { ok: true };
   }
 
-  cancel(): void { this.child?.kill(); }
+  cancel(): void {
+    if (this.child) {
+      this.killedByUs = true;
+      this.child.kill();
+    }
+  }
   reset(episodeId: string): void { this.sessions.delete(episodeId); }
 }
 
