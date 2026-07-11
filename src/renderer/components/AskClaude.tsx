@@ -28,7 +28,9 @@ export default function AskClaude({ episodeId }: { episodeId: string }) {
       liveRef.current = ''; setLive('');
     }
     if (ev.kind === 'done') {
-      if (liveRef.current) setBubbles((b) => [...b, { role: 'assistant', text: liveRef.current }]);
+      // setBubbles 업데이터는 나중에 실행됨 — liveRef를 지우기 전에 값을 먼저 캡처
+      const finalText = liveRef.current;
+      if (finalText) setBubbles((b) => [...b, { role: 'assistant', text: finalText }]);
       liveRef.current = ''; setLive(''); setStep(null); setBusy(false);
     }
   }), [episodeId]);
