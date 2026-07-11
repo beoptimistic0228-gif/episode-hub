@@ -21,6 +21,14 @@ describe('resolveOrchestratorRoot — 스펙 §4-3 우선순위', () => {
     expect(resolveOrchestratorRoot(appPath, join(base, 'none'), existsSync)).toBe(orch);
   });
 
+  test('ⓐ 레포 분리 후 형제 클론 ../nakgwan-channel-infra/orchestrator 최우선', () => {
+    const orch = makeOrch(base, join('nakgwan-channel-infra', 'orchestrator'));
+    makeOrch(base, 'orchestrator'); // 구 레이아웃도 있으면 신 레이아웃이 이김
+    const appPath = join(base, 'episode-hub');
+    mkdirSync(appPath, { recursive: true });
+    expect(resolveOrchestratorRoot(appPath, join(base, 'none'), existsSync)).toBe(orch);
+  });
+
   test('ⓑ 상대경로 없으면 기본 경로', () => {
     const def = makeOrch(base, 'default-orch');
     expect(resolveOrchestratorRoot(join(base, 'app'), def, existsSync)).toBe(def);

@@ -9,15 +9,22 @@ function isValidRoot(p: string, exists: (p: string) => boolean): boolean {
 
 /**
  * 스펙 §4-3 발견 우선순위:
- * ⓐ 앱이 레포 안이면 상대경로 ../orchestrator → ⓑ 기본 경로 → null(호출측이 다이얼로그 ⓒ)
+ * ⓐ 상대경로 후보(레포 분리 후 형제 클론 ../nakgwan-channel-infra/orchestrator,
+ *    분리 전 레이아웃 ../orchestrator) → ⓑ 기본 경로 → null(호출측이 다이얼로그 ⓒ)
+ * 클론 위치는 PC마다 다르므로 절대경로 후보를 늘리지 말 것 — 상대 탐색 + 저장 설정이 정답.
  */
 export function resolveOrchestratorRoot(
   appPath: string,
   defaultRoot: string,
   exists: (p: string) => boolean,
 ): string | null {
-  const sibling = resolve(appPath, '..', 'orchestrator');
-  if (isValidRoot(sibling, exists)) return sibling;
+  const candidates = [
+    resolve(appPath, '..', 'nakgwan-channel-infra', 'orchestrator'),
+    resolve(appPath, '..', 'orchestrator'),
+  ];
+  for (const c of candidates) {
+    if (isValidRoot(c, exists)) return c;
+  }
   if (isValidRoot(defaultRoot, exists)) return defaultRoot;
   return null;
 }
