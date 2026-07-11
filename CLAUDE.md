@@ -16,17 +16,19 @@
 - `npm install` → `npm run dev`(electron-vite) / `npm run build` / `npm run test`(vitest) / `npm run test:e2e`(Playwright-Electron) / `npm run typecheck` / `npm run dist`(NSIS exe).
 - 게이트: unit 그린 · typecheck 0 · build OK · e2e 그린.
 - 개발 방식: 하네스 팀(서브에이전트 구현→리뷰→픽스) — superpowers 스킬. 스펙은 `docs/superpowers/specs`, 계획은 `docs/superpowers/plans`. (Phase A~E1 스펙·계획은 분리 시 복사됨; 그 이전 역사는 콘텐츠 레포에도 있음.)
-- ⚠️ 이 환경 Agent model = `opus`/`haiku`만(`sonnet` 접근 불가).
+- Agent 모델 가용성은 PC/플랜마다 다름 — 특정 모델 제약을 이 문서에 박지 말고 디스패치 시점에 확인.
 - 배포: `npm run dist` → `release/EpisodeHub-Setup-<v>.exe` → GitHub Release(`build.publish` = 이 레포 `beoptimistic0228-gif/episode-hub`).
 
 ## MCP 브리지 (AI→앱, v0.2.0)
 앱 기동 시 `127.0.0.1:7801`에 HTTP MCP 서버(Bearer 토큰, 콘텐츠 레포 루트에 gitignored `.mcp.json` 자동생성). tool 8종(`list_episodes`·`read_episode`·`read_file`·`get_channel_stats`·`write_file`·`patch_episode`·`save_render`·`git_complete`)으로 Claude Code가 에피소드 읽기/쓰기. 핵심: `src/main/mcpBridge.ts`(토큰·`.mcp.json`)·`src/main/mcpServer.ts`(HTTP 서버·tool). `.mcp.json`은 루트 확정 시점(`onRootChanged`)마다 기록.
 
+**E2(앱→AI, 읽기 전용 Q&A)**: 에피소드 화면 "Claude에게 물어보기" 패널 — `src/main/aiBridge.ts`가 headless `claude -p`를 spawn(읽기 4종 `--allowedTools` 잠금, `--resume` 이어묻기, Owner PC 전용 CLI 감지). 설계 `docs/superpowers/specs/2026-07-11-episode-hub-phase-e2-ask-ai-design.md`.
+
 ## 이미지 공유 (클라우드 드라이브 동기, v0.3)
 글자는 콘텐츠 레포 git, **이미지만** per-PC `imageRoot`(Google Drive 등 동기 로컬 폴더)로 공유. 경로 구조 `<imageRoot>/<id>/<groupRel>`(레포보다 한 단계 얕음 — `output/episodes` 세그먼트 없음). 저장 `saveRender`·표시 `hub://`(imageRoot 우선, 레포 폴백)·상세 `scanEpisodeDetail`(imageRoot 이미지 병합)이 `imageRoot` 경유. **하위호환: `imageRoot` 미설정 시 레포 이미지 유지**(무중단 과도기). 핵심: `src/main/pathGuard.ts`(`resolveImagePath`)·`src/main/imageMigrate.ts`(레포→imageRoot 1회 이관). 설정은 사이드바 "이미지 폴더"/"이미지 이관" 버튼. 설계 `docs/superpowers/specs/2026-07-09-episode-hub-image-sync-design.md`, 계획 `docs/superpowers/plans/2026-07-09-episode-hub-image-sync.md`.
 
 ## 다음
-- **Phase E2**(앱→AI): 앱이 headless `claude`를 spawn해 파이프라인/질의 구동, E1 HTTP 서버 재사용.
+- **Phase E3**(앱에서 AI 실행): 파이프라인 구동·작업 큐 — 쓰기 발생이라 승인 게이트 설계 필요. E2 aiBridge 재사용.
 
 ## 커밋
 - scope 예: `feat`/`fix`/`chore`/`docs`. 커밋 신원(이 레포 로컬) = `낙관 <beoptimistic0228@gmail.com>`.
