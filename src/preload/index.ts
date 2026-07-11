@@ -4,6 +4,7 @@ import type { WriteTextResult, SaveRenderResult, EpisodePatch } from '../main/wr
 import type { GitStatus, CompleteResult } from '../main/git';
 import type { ChannelStats } from '../shared/stats';
 import type { AskEvent } from '../main/aiBridge';
+import type { ProposalSummary, ApplyResult } from '../main/proposalStore';
 
 const api = {
   config: {
@@ -66,6 +67,14 @@ const api = {
       ipcRenderer.invoke('ai:ask', episodeId, question),
     cancel: (): Promise<{ ok: true }> => ipcRenderer.invoke('ai:cancel'),
     reset: (episodeId: string): Promise<{ ok: true }> => ipcRenderer.invoke('ai:reset', episodeId),
+    proposals: (episodeId: string): Promise<ProposalSummary[]> =>
+      ipcRenderer.invoke('ai:proposals', episodeId),
+    proposalDiff: (itemId: string): Promise<{ relPath: string; reason: string; oldText: string; newText: string } | null> =>
+      ipcRenderer.invoke('ai:proposalDiff', itemId),
+    applyProposal: (episodeId: string, itemIds: string[], force?: boolean): Promise<ApplyResult[]> =>
+      ipcRenderer.invoke('ai:applyProposal', episodeId, itemIds, force),
+    rejectProposal: (episodeId: string, itemIds: string[]): Promise<ProposalSummary[]> =>
+      ipcRenderer.invoke('ai:rejectProposal', episodeId, itemIds),
     onStream: (cb: (ev: AskEvent) => void): (() => void) => {
       const listener = (_e: unknown, ev: AskEvent) => cb(ev);
       ipcRenderer.on('ai:stream', listener);

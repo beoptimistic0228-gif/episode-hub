@@ -103,17 +103,21 @@ app.whenReady().then(() => {
     void syncMcpJson(root, mcpToken);
   });
 
+  // E3 — propose_edit 검증에 진행 중 ask 에피소드가 필요해 aiIpc를 먼저 등록한다.
+  const aiIpc = registerAiIpc({ userDataDir: app.getPath('userData'), port: MCP_PORT, token: mcpToken, getRoot });
+  app.on('before-quit', () => aiIpc.dispose());
+
   void (async () => {
     try {
-      bridge = await startMcpBridge({ getRoot, token: mcpToken, port: MCP_PORT, getImageRoot });
+      bridge = await startMcpBridge({
+        getRoot, token: mcpToken, port: MCP_PORT, getImageRoot,
+        getActiveAskEpisode: aiIpc.getActiveAskEpisode,
+      });
     } catch (e) {
       // 포트 사용중·git 루트 미발견 등 — 브리지만 스킵, 앱은 정상 (토큰은 e에 미포함)
       console.error('[mcp-bridge] start skipped:', e);
     }
   })();
-
-  const aiIpc = registerAiIpc({ userDataDir: app.getPath('userData'), port: MCP_PORT, token: mcpToken });
-  app.on('before-quit', () => aiIpc.dispose());
 
   mainWin = createWindow();
   void bootCollectStats();

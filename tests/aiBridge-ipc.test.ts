@@ -10,13 +10,17 @@ vi.mock('electron', () => ({
   BrowserWindow: { getAllWindows: () => [] },
 }));
 
-test('registerAiIpc — ai:* 채널 4종 등록 + ai-mcp-config.json 생성', async () => {
+test('registerAiIpc — ai:* 채널 8종 등록 + ai-mcp-config.json 생성 + activeAskEpisode 노출', async () => {
   const { registerAiIpc } = await import('../src/main/aiIpc');
   const dir = mkdtempSync(join(tmpdir(), 'ai-ipc-'));
-  registerAiIpc({ userDataDir: dir, port: 7801, token: 'tok' });
-  for (const ch of ['ai:status', 'ai:ask', 'ai:cancel', 'ai:reset']) {
+  const r = registerAiIpc({ userDataDir: dir, port: 7801, token: 'tok', getRoot: () => null });
+  for (const ch of [
+    'ai:status', 'ai:ask', 'ai:cancel', 'ai:reset',
+    'ai:proposals', 'ai:proposalDiff', 'ai:applyProposal', 'ai:rejectProposal',
+  ]) {
     expect(handles.has(ch)).toBe(true);
   }
+  expect(r.getActiveAskEpisode()).toBeNull();
   expect(existsSync(join(dir, 'ai-mcp-config.json'))).toBe(true);
   rmSync(dir, { recursive: true, force: true });
 });
