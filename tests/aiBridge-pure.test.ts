@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  READ_TOOLS, ASK_TOOLS, buildPrompt, buildAskArgs, parseStreamLine, writeAiMcpConfig,
+  ASK_TOOLS, buildPrompt, buildAskArgs, parseStreamLine, writeAiMcpConfig,
 } from '../src/main/aiBridge';
 
 describe('buildPrompt', () => {
