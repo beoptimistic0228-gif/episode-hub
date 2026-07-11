@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
@@ -9,8 +9,14 @@ import { readStats } from './statsFetcher';
 import { safeEpisodePath } from './pathGuard';
 import { scanEpisodeDetail, scanEpisodes } from './scanner';
 import { patchEpisode, saveRender, writeText, type EpisodePatch } from './writer';
+import { submitProposal } from './proposalStore';
 
 export type GetRoot = () => string | null;
+
+export interface EpisodeToolExtras {
+  /** E3 — 앱 질문 패널에서 진행 중인 ask의 에피소드 id (없으면 propose_edit 전면 거절) */
+  getActiveAskEpisode?: () => string | null;
+}
 
 const ok = (data: unknown) => ({
   // read_file 처럼 이미 문자열이면 원문 그대로, 그 외(객체)는 JSON 직렬화.
@@ -34,8 +40,10 @@ const patchShape = z.object({
   removePublication: z.object({ index: z.number() }).optional(),
 });
 
-/** 8개 에피소드 tool을 MCP 서버에 등록한다. 모두 기존 순수 함수를 가드 경유로 호출. */
-export function registerEpisodeTools(server: McpServer, getRoot: GetRoot, getImageRoot: GetRoot = () => null): void {
+/** 9개 에피소드 tool을 MCP 서버에 등록한다. 모두 기존 순수 함수를 가드 경유로 호출. */
+export function registerEpisodeTools(
+  server: McpServer, getRoot: GetRoot, getImageRoot: GetRoot = () => null, extras: EpisodeToolExtras = {},
+): void {
   server.registerTool('list_episodes',
     { description: '모든 에피소드 요약(단계·그룹 수·발행·견적·조회수) 목록', inputSchema: {} },
     async () => {
@@ -102,6 +110,26 @@ export function registerEpisodeTools(server: McpServer, getRoot: GetRoot, getIma
     async ({ id }) => {
       try { return ok(await completeEpisode(requireRoot(getRoot), id)); } catch (e) { return fail(e); }
     });
+
+  server.registerTool('propose_edit',
+    {
+      description: '파일을 직접 쓰지 않고 수정안을 앱 승인 카드에 제출(.md만). 부부가 승인해야 저장된다',
+      inputSchema: {
+        id: z.string(), relPath: z.string().describe('episodes/<id>/ 기준 상대경로 (.md만)'),
+        newContent: z.string().describe('파일 전체의 새 내용'), reason: z.string().describe('한 줄 변경 이유'),
+      },
+    },
+    async ({ id, relPath, newContent, reason }) => {
+      try {
+        const root = requireRoot(getRoot);
+        const active = extras.getActiveAskEpisode?.() ?? null;
+        if (!active || active !== id) throw new Error('앱 질문 패널에서 진행 중인 에피소드에만 제안할 수 있어요');
+        if (!/\.md$/i.test(relPath)) throw new Error(`md 파일만 제안 가능: ${relPath}`);
+        const full = safeEpisodePath(root, id, relPath); // 경로 탈출 차단(제출 시 1차)
+        const baseMtimeMs = existsSync(full) ? statSync(full).mtimeMs : null;
+        return ok(submitProposal({ episodeId: id, relPath, newContent, reason, baseMtimeMs }));
+      } catch (e) { return fail(e); }
+    });
 }
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5 MB — 과대 본문 파싱 전 차단
@@ -145,6 +173,7 @@ export function startMcpBridge(opts: {
   port: number;
   path?: string;
   getImageRoot?: GetRoot;
+  getActiveAskEpisode?: () => string | null;
 }): Promise<BridgeHandle> {
   const path = opts.path ?? '/mcp';
   const httpServer: Server = createServer((req, res) => {
@@ -158,7 +187,7 @@ export function startMcpBridge(opts: {
       try {
         const body = await readJsonBody(req);
         const server = new McpServer({ name: 'episode-hub', version: '0.1.0' });
-        registerEpisodeTools(server, opts.getRoot, opts.getImageRoot);
+        registerEpisodeTools(server, opts.getRoot, opts.getImageRoot, { getActiveAskEpisode: opts.getActiveAskEpisode });
         const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
         res.on('close', () => { void transport.close(); void server.close(); });
         await server.connect(transport);

@@ -31,12 +31,12 @@ describe('episode tools (MCP)', () => {
   beforeEach(() => { r = makeRoot(); });
   afterEach(() => { rmSync(r.base, { recursive: true, force: true }); });
 
-  test('tools/list 는 8개 tool 노출', async () => {
+  test('tools/list 는 9개 tool 노출', async () => {
     const c = await connect(r.base);
     const { tools } = await c.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
       'get_channel_stats', 'git_complete', 'list_episodes', 'patch_episode',
-      'read_episode', 'read_file', 'save_render', 'write_file',
+      'propose_edit', 'read_episode', 'read_file', 'save_render', 'write_file',
     ]);
   });
 
