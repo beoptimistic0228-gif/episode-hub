@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { marked } from 'marked';
+import { renderMarkdown } from '../lib/markdown';
 import { useHub } from '../store/useHub';
 
 export default function MarkdownEditor({
@@ -58,7 +58,7 @@ export default function MarkdownEditor({
           onChange={(e) => { setRaw(e.target.value); setDirty(true); }}
         />
       ) : (
-        <div className="md-view" dangerouslySetInnerHTML={{ __html: marked.parse(raw, { async: false }) as string }} />
+        <div className="md-view" dangerouslySetInnerHTML={{ __html: renderMarkdown(raw) }} />
       )}
     </div>
   );
