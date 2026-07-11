@@ -1,5 +1,5 @@
 // registerAiIpc는 Electron 런타임 의존이라 electron 모듈을 mock하고
-// "채널 4종 등록 + mcp-config 파일 생성"만 검증한다(로직 본체는 Task 1·2에서 검증 완료).
+// "채널 8종 등록 + mcp-config 파일 생성"만 검증한다(로직 본체는 Task 1·2에서 검증 완료).
 import { mkdtempSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

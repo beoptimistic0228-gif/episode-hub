@@ -483,7 +483,7 @@ body {
 .ask-input { flex: 1; padding: 8px 10px; border: 1px solid var(--hairline); border-radius: 8px; }
 
 /* ── E3 제안 카드 ─────────────────────────────── */
-.proposal-card { border: 1px solid var(--border, #d8d3cb); border-radius: 12px; padding: 10px 12px; margin: 8px 0; background: var(--panel, #fff); }
+.proposal-card { border: 1px solid var(--hairline, #d8d3cb); border-radius: 12px; padding: 10px 12px; margin: 8px 0; background: var(--canvas, #fff); }
 .proposal-head { font-weight: 700; margin-bottom: 6px; }
 .proposal-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .proposal-file { background: none; border: none; cursor: pointer; text-decoration: underline; font-family: inherit; padding: 0; }
@@ -492,7 +492,7 @@ body {
 .proposal-status.rejected, .proposal-status.failed { color: #a33; }
 .proposal-status.conflict { color: #b7791f; }
 .proposal-actions { display: flex; gap: 8px; margin-top: 8px; }
-.diff-view { max-height: 320px; overflow: auto; font-family: ui-monospace, Consolas, monospace; font-size: 12px; border: 1px solid var(--border, #d8d3cb); border-radius: 8px; margin: 4px 0 8px; }
+.diff-view { max-height: 320px; overflow: auto; font-family: ui-monospace, Consolas, monospace; font-size: 12px; border: 1px solid var(--hairline, #d8d3cb); border-radius: 8px; margin: 4px 0 8px; }
 .diff-row { padding: 0 8px; white-space: pre-wrap; }
 .diff-row.add { background: rgba(46, 160, 67, 0.18); }
 .diff-row.del { background: rgba(248, 81, 73, 0.18); text-decoration: line-through; }

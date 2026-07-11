@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { lineDiff, type DiffRow } from '../lib/lineDiff';
 
 export type ProposalCardItem = {
@@ -21,6 +21,7 @@ export default function ProposalCard({ episodeId, items: initial }: { episodeId:
   const [open, setOpen] = useState<string | null>(null);
   const [rows, setRows] = useState<DiffRow[]>([]);
   const [busy, setBusy] = useState(false);
+  const diffReqRef = useRef(0);
 
   const selectable = (it: ProposalCardItem) => it.status === 'pending' || it.status === 'conflict';
   const openItems = items.filter(selectable);
@@ -33,8 +34,10 @@ export default function ProposalCard({ episodeId, items: initial }: { episodeId:
   });
 
   const showDiff = async (id: string) => {
-    if (open === id) { setOpen(null); return; }
+    if (open === id) { diffReqRef.current++; setOpen(null); return; }
+    const req = ++diffReqRef.current;
     const d = await window.hub.ai.proposalDiff(id);
+    if (req !== diffReqRef.current) return;
     if (!d) return;
     setRows(lineDiff(d.oldText, d.newText));
     setOpen(id);
