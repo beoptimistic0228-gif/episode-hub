@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { GROUPS, type GroupKey } from '@shared/groups';
 import { APPROVAL_GATES } from '@shared/episode';
 import AgentCallout from './AgentCallout';
+import AskClaude from './AskClaude';
 import EpisodeHeader from './EpisodeHeader';
 import GroupDetail from './GroupDetail';
 import PublicationStrip from './PublicationStrip';
@@ -51,6 +52,8 @@ export default function EpisodeView() {
       {tab === 'publish' && <PublicationStrip detail={detail} />}
       {/* key=tab — 탭 전환 시 리마운트로 그룹별 내부 상태(선택 md 등) 초기화 */}
       <GroupDetail key={tab} detail={detail} group={tab} />
+      {/* key=id — 에피소드 전환 시 대화 UI 리마운트(세션은 main이 에피소드별 보관) */}
+      <AskClaude key={`ask-${detail.id}`} episodeId={detail.id} />
     </>
   );
 }

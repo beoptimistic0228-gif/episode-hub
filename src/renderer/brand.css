@@ -468,3 +468,16 @@ body {
 .chart-title { margin: 0 0 8px; font-size: 14px; }
 .chart-empty { border: 1px dashed #ddd; border-radius: 12px; padding: 24px; text-align: center; color: #999; font-size: 13px; }
 .views-tag { font-size: 12px; color: #ea4f23; font-variant-numeric: tabular-nums; margin-left: auto; }
+
+/* ── E2: Claude에게 물어보기 패널 ── */
+.ask-panel { margin: 16px; padding: 12px 16px; border: 1px solid var(--hairline); border-radius: 12px; }
+.ask-head { display: flex; align-items: center; justify-content: space-between; }
+.ask-thread { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }
+.ask-bubble { max-width: 85%; padding: 8px 12px; border-radius: 10px; white-space: pre-wrap; }
+.ask-bubble.user { align-self: flex-end; background: var(--sky); }
+.ask-bubble.assistant { align-self: flex-start; background: rgba(0, 0, 0, 0.05); white-space: normal; }
+.ask-bubble.error { align-self: flex-start; background: rgba(234, 79, 35, 0.12); color: #a33; }
+.ask-step { font-size: 12px; opacity: 0.6; }
+.ask-unavailable { opacity: 0.6; }
+.ask-input-row { display: flex; gap: 8px; }
+.ask-input { flex: 1; padding: 8px 10px; border: 1px solid var(--hairline); border-radius: 8px; }
