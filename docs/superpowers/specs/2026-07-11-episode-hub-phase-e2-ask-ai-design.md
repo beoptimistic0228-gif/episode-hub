@@ -89,7 +89,7 @@ episode-hub MCP 도구(read_episode·read_file 등)로 실제 데이터를 읽�
 | spawn 실패 / 비정상 종료(exit≠0) | 에러 말풍선(stderr 요약) + 입력 재활성 |
 | 무출력 120초 | kill + "응답이 없어 중단했어요" |
 | stream-json 파싱 불가 라인 | 해당 라인 무시(로그), 세션 지속 |
-| `--resume` 실패(만료 세션) | 새 세션으로 자동 재시작 후 재질문 |
+| `--resume` 실패(만료 세션) | 세션 폐기 — 에러 표시 후 다음 질문은 자동으로 새 세션 |
 
 ## 6. 테스트 (게이트: unit · typecheck · build · e2e)
 
