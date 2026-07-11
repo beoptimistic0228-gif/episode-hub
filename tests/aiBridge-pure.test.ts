@@ -32,12 +32,19 @@ describe('buildAskArgs', () => {
     const denied = args[args.indexOf('--disallowedTools') + 1];
     expect(denied).toContain('Bash');
     expect(denied).toContain('Write');
+    expect(denied).toContain('Read'); // 내장 읽기 도구도 차단 — MCP 밖 로컬 파일 접근 금지
     expect(args[args.indexOf('--mcp-config') + 1]).toBe('C:/x/ai-mcp.json');
     expect(args).not.toContain('--resume');
   });
   test('resumeSessionId가 있으면 --resume을 붙인다', () => {
     const args = buildAskArgs({ mcpConfigPath: 'x.json', resumeSessionId: 's-123' });
     expect(args[args.indexOf('--resume') + 1]).toBe('s-123');
+  });
+  test('resumeSessionId가 형식에 안 맞으면 --resume을 생략한다(argv 방어)', () => {
+    const bad = buildAskArgs({ mcpConfigPath: 'x.json', resumeSessionId: 's 1; rm -rf /' });
+    expect(bad).not.toContain('--resume');
+    const ok = buildAskArgs({ mcpConfigPath: 'x.json', resumeSessionId: 'abc-123_DEF' });
+    expect(ok[ok.indexOf('--resume') + 1]).toBe('abc-123_DEF');
   });
 });
 

@@ -2,7 +2,9 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, writeFileSync } from 'node:fs';
 import { MCP_PATH } from './mcpBridge';
 
-/** E2 읽기 전용 보장의 핵심 — 이 4종 외 도구는 스폰된 claude에 존재하지 않는다. */
+/** E2 읽기 전용 보장 — 이 MCP 4종만 --allowedTools로 사전승인한다. allowedTools는 어디까지나
+ *  "사전승인" 목록이라 내장 Read/Glob/Grep/Task·쓰기·셸·네트워크 도구를 제거하지 못하므로,
+ *  그 내장 도구들은 아래 DENY_TOOLS를 --disallowedTools로 넘겨 명시 차단한다(둘의 합이 읽기 전용 보장). */
 export const READ_TOOLS = [
   'mcp__episode-hub__list_episodes',
   'mcp__episode-hub__read_episode',
@@ -10,13 +12,16 @@ export const READ_TOOLS = [
   'mcp__episode-hub__get_channel_stats',
 ] as const;
 
-const DENY_TOOLS = 'Bash,Write,Edit,NotebookEdit,WebFetch,WebSearch';
+/** 내장 쓰기·셸·네트워크 + 로컬 파일 읽기(Read/Glob/Grep/Task) 도구를 차단 —
+ *  스폰된 claude는 MCP(episode-hub) 밖 임의 로컬 파일에 접근하면 안 된다. */
+const DENY_TOOLS = 'Bash,Write,Edit,NotebookEdit,WebFetch,WebSearch,Read,Glob,Grep,Task';
 
 export interface AskEvent {
   kind: 'init' | 'text' | 'tool' | 'result' | 'error' | 'done';
   text?: string;
   tool?: string;
   sessionId?: string;
+  episodeId?: string;
 }
 
 export function buildPrompt(episodeId: string, question: string, isNewSession: boolean): string {
@@ -41,7 +46,10 @@ export function buildAskArgs(opts: { mcpConfigPath: string; resumeSessionId?: st
     '--allowedTools', READ_TOOLS.join(','),
     '--disallowedTools', DENY_TOOLS,
   ];
-  if (opts.resumeSessionId) args.push('--resume', opts.resumeSessionId);
+  // resumeSessionId는 shell:true 아래 argv로 흘러가므로 세션 id 문자셋만 허용(주입 방어).
+  if (opts.resumeSessionId && /^[\w-]+$/.test(opts.resumeSessionId)) {
+    args.push('--resume', opts.resumeSessionId);
+  }
   return args;
 }
 
@@ -86,7 +94,8 @@ export interface SpawnLike {
   stdout: NodeJS.ReadableStream;
   stderr: NodeJS.ReadableStream;
   stdin: NodeJS.WritableStream;
-  on(ev: 'close', cb: (code: number | null) => void): unknown;
+  pid?: number;
+  on(ev: 'close' | 'exit', cb: (code: number | null) => void): unknown;
   kill(): void;
 }
 
@@ -115,13 +124,16 @@ export class AiBridge {
     this.child = child;
     this.killedByUs = false;
 
+    // 이 질문의 모든 이벤트에 에피소드 id를 스탬프 — 리마운트된 다른 에피소드 패널로 새지 않도록.
+    const emit = (ev: AskEvent) => this.deps.onEvent({ ...ev, episodeId });
+
     const timeoutMs = this.deps.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     let timer = setTimeout(onTimeout, timeoutMs);
     const bump = () => { clearTimeout(timer); timer = setTimeout(onTimeout, timeoutMs); };
     const self = this;
     function onTimeout() {
       self.killedByUs = true;
-      self.deps.onEvent({ kind: 'error', text: '응답이 없어 중단했어요. 다시 시도해 주세요.' });
+      emit({ kind: 'error', text: '응답이 없어 중단했어요. 다시 시도해 주세요.' });
       child.kill();
     }
 
@@ -138,20 +150,27 @@ export class AiBridge {
         if (!ev) continue;
         if (ev.sessionId) this.sessions.set(episodeId, ev.sessionId);
         if (ev.kind === 'result' || ev.kind === 'error') sawResult = true;
-        this.deps.onEvent(ev);
+        emit(ev);
       }
     });
     child.stderr.on('data', (chunk: Buffer) => { stderrTail = (stderrTail + chunk.toString('utf-8')).slice(-500); });
-    child.on('close', (code) => {
+    // win32 shell:true는 'close'가 안 뜰 수 있고(트리킬로 파이프가 남음), 'exit'만 올 수도 있다 —
+    // 둘 중 먼저 오는 이벤트로 정확히 한 번 정산(settled 가드).
+    let settled = false;
+    const settle = (code: number | null) => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
       this.child = null;
       if (!sawResult && code !== 0 && !this.killedByUs) {
         // 만료 세션 resume 실패 등 — 세션 폐기해 다음 질문은 새 세션으로
         if (resume) this.sessions.delete(episodeId);
-        this.deps.onEvent({ kind: 'error', text: `Claude 실행이 실패했어요. ${stderrTail || `(exit ${code})`}` });
+        emit({ kind: 'error', text: `Claude 실행이 실패했어요. ${stderrTail || `(exit ${code})`}` });
       }
-      this.deps.onEvent({ kind: 'done' });
-    });
+      emit({ kind: 'done' });
+    };
+    child.on('close', settle);
+    child.on('exit', settle);
     child.stdin.end(buildPrompt(episodeId, question, !resume));
     return { ok: true };
   }
@@ -175,11 +194,24 @@ export function resolveClaudeBin(): string | null {
   return first ?? null;
 }
 
-/** 실제 spawn. win32는 .cmd 셔임 대응으로 shell 경유 + 공백 인자만 쿼팅(프롬프트는 stdin이라 안전). */
+/** 실제 spawn. win32는 .cmd 셔임 대응으로 shell 경유 + 공백 인자만 쿼팅(프롬프트는 stdin이라 안전).
+ *  shell:true면 자식은 cmd.exe → node claude 트리라 cp.kill()은 cmd만 죽이고 claude는 고아가 된다
+ *  (stdout 파이프가 안 닫혀 close/done이 영영 안 뜸). 그래서 win32는 kill()을 taskkill /T 트리킬로 감싼다. */
 export function spawnClaude(bin: string, args: string[]): SpawnLike {
   if (process.platform === 'win32') {
     const q = (s: string) => (/[ \t]/.test(s) ? `"${s}"` : s);
-    return spawn(q(bin), args.map(q), { shell: true, windowsHide: true }) as unknown as SpawnLike;
+    const cp = spawn(q(bin), args.map(q), { shell: true, windowsHide: true }) as unknown as SpawnLike;
+    const treeKill = () => {
+      if (cp.pid) spawnSync('taskkill', ['/pid', String(cp.pid), '/T', '/F']);
+      else cp.kill();
+    };
+    return new Proxy(cp, {
+      get(target, prop, receiver) {
+        if (prop === 'kill') return treeKill;
+        const v = Reflect.get(target, prop, receiver);
+        return typeof v === 'function' ? v.bind(target) : v;
+      },
+    });
   }
   return spawn(bin, args) as unknown as SpawnLike;
 }

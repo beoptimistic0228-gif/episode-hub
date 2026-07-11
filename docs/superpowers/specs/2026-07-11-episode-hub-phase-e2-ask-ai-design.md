@@ -46,7 +46,8 @@ E1 spec의 Owner 동작 요구 중 **④ 앱에서 AI 질문**만 이번 v1으�
 - **감지** `detectClaude()`: 기동 시 1회 `claude` 실행파일 존재 확인(PATH 조회). 결과는 `ai:status` IPC로 renderer에 노출.
 - **실행** `ask({episodeId, question, sessionId?})`:
   - `claude -p <조립된 프롬프트> --output-format stream-json` spawn.
-  - **도구 잠금**: `--allowedTools "mcp__episode-hub__list_episodes,mcp__episode-hub__read_episode,mcp__episode-hub__read_file,mcp__episode-hub__get_channel_stats"` — 쓰기 도구(write_file·patch_episode·save_render·git_complete)와 내장 Write/Edit/Bash는 **허용 목록에 없어 사용 불가**. 읽기 전용의 구조적 보장.
+  - **도구 잠금**: `--allowedTools`로 MCP 읽기 4종(`list_episodes·read_episode·read_file·get_channel_stats`)만 **사전승인**한다. 다만 `--allowedTools`는 사전승인 목록일 뿐 내장 도구를 제거하지 못하므로(내장 `Read/Glob/Grep/Task`·쓰기·셸·네트워크는 승인 없이도 존재), 이들을 `--disallowedTools`(`Bash,Write,Edit,NotebookEdit,WebFetch,WebSearch,Read,Glob,Grep,Task`)로 **명시 차단**한다. 두 목록의 합이 "MCP 밖 로컬 파일·쓰기·네트워크 불가 = 읽기 전용"의 구조적 보장이다. 쓰기 MCP 도구(write_file·patch_episode·save_render·git_complete)는 애초에 사전승인 밖이라 사용 불가.
+  - **이벤트 스코프**: `AiBridge.ask()`가 방출하는 모든 이벤트에는 질문한 에피소드의 `episodeId`가 스탬프된다 — 리마운트된 다른 에피소드 패널로 진행 중 이벤트가 새지 않도록(renderer가 자기 id와 다른 이벤트는 무시).
   - **MCP 접속 명시 주입**: E1의 `.mcp.json`(콘텐츠 레포 루트, cwd 의존)에 기대지 않고, `--mcp-config`로 `{mcpServers: {"episode-hub": {url, headers.Authorization}}}`를 직접 전달(+`--strict-mcp-config`로 그 외 서버 차단). 토큰·포트는 `mcpBridge.ts` 기존 값 재사용 — cwd·레포 위치와 무관하게 동작.
   - **동시 1건**: 진행 중이면 신규 요청 거부(패널이 입력 비활성으로 선반영).
 - **이어묻기**: 첫 응답 stream-json의 `session_id`를 패널 대화 단위로 보관 → 후속 질문은 `--resume <sid>`. "새 대화" = sid 폐기.
@@ -67,11 +68,11 @@ episode-hub MCP 도구(read_episode·read_file 등)로 실제 데이터를 읽�
 질문: <사용자 입력>
 ```
 
-이어묻기(`--resume`)는 사용자 입력만 전달(세션이 맥락 보유). 데이터 파일을 프롬프트에 욱여넣지 않는다 — Claude가 도구로 필요한 것만 읽는다.
+이어묻기(`--resume`)는 사용자 입력만 전달(세션이 맥락 보유). 데이터 파일을 프롬프트에 욱여넣지 않는다 — Claude가 도구로 필요한 것만 읽는다. `resumeSessionId`는 `shell:true` 아래 argv로 흘러가므로 `/^[\w-]+$/`에 맞을 때만 `--resume`에 붙인다(주입 방어). 방출 이벤트에는 §4-1의 `episodeId`가 스탬프된다.
 
 ### 4-3. preload / IPC 표면
 
-`window.hub.ai` = `{ status(): {available}, ask(episodeId, question), cancel(), reset(), onStream(cb) }`. 기존 `window.hub.*` 네임스페이스·preload 패턴을 따른다.
+`window.hub.ai` = `{ status(): {available, busy}, ask(episodeId, question), cancel(), reset(), onStream(cb) }`. `status`는 `claude` 감지 여부(`available`)와 진행 중 여부(`busy`)를 함께 반환해 패널이 마운트 시 진행 상태를 복원한다. 기존 `window.hub.*` 네임스페이스·preload 패턴을 따른다.
 
 ### 4-4. 질문 패널 `src/renderer/components/AskClaude.tsx` (신설)
 

@@ -6,7 +6,6 @@ import {
 
 export function registerAiIpc(opts: { userDataDir: string; port: number; token: string }): { dispose(): void } {
   const mcpConfigPath = writeAiMcpConfig(join(opts.userDataDir, 'ai-mcp-config.json'), opts.port, opts.token);
-  const bin = resolveClaudeBin();
   const broadcast = (ev: AskEvent) => {
     for (const w of BrowserWindow.getAllWindows()) w.webContents.send('ai:stream', ev);
   };
@@ -20,13 +19,15 @@ export function registerAiIpc(opts: { userDataDir: string; port: number; token: 
     },
   });
 
-  ipcMain.handle('ai:status', () => ({ available: resolveClaudeBin() !== null }));
+  ipcMain.handle('ai:status', () => ({ available: resolveClaudeBin() !== null, busy: bridge.busy() }));
   ipcMain.handle('ai:ask', (_e, episodeId: string, question: string) => {
     try { return bridge.ask(String(episodeId), String(question)); }
-    catch (err) { return { ok: false, message: String(err) }; }
+    catch (err) {
+      console.error('[aiIpc] ai:ask 실패:', err);
+      return { ok: false, message: '이 PC에서 Claude Code를 찾지 못했어요.' };
+    }
   });
   ipcMain.handle('ai:cancel', () => { bridge.cancel(); return { ok: true as const }; });
   ipcMain.handle('ai:reset', (_e, episodeId: string) => { bridge.reset(String(episodeId)); return { ok: true as const }; });
-  void bin; // 기동 시 1회 탐지는 status 채널로 충분 — 변수 미사용 경고 방지
   return { dispose: () => bridge.cancel() };
 }

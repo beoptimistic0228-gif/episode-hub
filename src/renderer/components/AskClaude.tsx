@@ -13,9 +13,12 @@ export default function AskClaude({ episodeId }: { episodeId: string }) {
   const [draft, setDraft] = useState('');
   const liveRef = useRef('');
 
-  useEffect(() => { void window.hub.ai.status().then((s) => setAvailable(s.available)); }, []);
+  useEffect(() => {
+    void window.hub.ai.status().then((s) => { setAvailable(s.available); setBusy(s.busy); });
+  }, []);
 
   useEffect(() => window.hub.ai.onStream((ev: AskEvent) => {
+    if (ev.episodeId !== episodeId) return; // 다른 에피소드의 진행 중 이벤트는 무시
     if (ev.kind === 'tool') setStep('에피소드 읽는 중…');
     if (ev.kind === 'text') { setStep(null); liveRef.current += ev.text ?? ''; setLive(liveRef.current); }
     if (ev.kind === 'result') { liveRef.current = ev.text || liveRef.current; setLive(liveRef.current); }
@@ -27,7 +30,7 @@ export default function AskClaude({ episodeId }: { episodeId: string }) {
       if (liveRef.current) setBubbles((b) => [...b, { role: 'assistant', text: liveRef.current }]);
       liveRef.current = ''; setLive(''); setStep(null); setBusy(false);
     }
-  }), []);
+  }), [episodeId]);
 
   const send = async () => {
     const q = draft.trim();
@@ -71,7 +74,7 @@ export default function AskClaude({ episodeId }: { episodeId: string }) {
           value={draft}
           disabled={busy}
           onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') void send(); }}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) void send(); }}
         />
         {busy
           ? <button className="chip" onClick={() => void window.hub.ai.cancel()}>중단</button>

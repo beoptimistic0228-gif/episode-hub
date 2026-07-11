@@ -61,7 +61,7 @@ const api = {
     },
   },
   ai: {
-    status: (): Promise<{ available: boolean }> => ipcRenderer.invoke('ai:status'),
+    status: (): Promise<{ available: boolean; busy: boolean }> => ipcRenderer.invoke('ai:status'),
     ask: (episodeId: string, question: string): Promise<{ ok: boolean; message?: string }> =>
       ipcRenderer.invoke('ai:ask', episodeId, question),
     cancel: (): Promise<{ ok: true }> => ipcRenderer.invoke('ai:cancel'),
