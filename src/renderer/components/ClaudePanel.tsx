@@ -21,7 +21,10 @@ export default function ClaudePanel() {
   // 새 말풍선·스트림 도착 시 항상 맨 아래로
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight });
-  }, [bubbleCount, thread?.live, thread?.step]);
+  }, [activeEpisodeId, bubbleCount, thread?.live, thread?.step]);
+
+  // 에피소드 전환 시 쓰다 만 초안은 버린다 — 다른 에피소드로 오전송 방지
+  useEffect(() => { setDraft(''); }, [activeEpisodeId]);
 
   if (!panelOpen) {
     return (
@@ -45,7 +48,7 @@ export default function ClaudePanel() {
       <div className="chat-panel-head">
         <img src={botImg} alt="" aria-hidden />
         <span className="chat-panel-title">{title ? `💬 ${title}` : 'Claude'}</span>
-        {activeEpisodeId && <button className="chip" onClick={() => void newChat()} disabled={busy}>새 대화</button>}
+        {activeEpisodeId && available !== false && <button className="chip" onClick={() => void newChat()} disabled={busy}>새 대화</button>}
         <button className="chip" onClick={togglePanel} title="패널 닫기">✕</button>
       </div>
 
