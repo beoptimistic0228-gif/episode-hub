@@ -30,6 +30,7 @@ describe('buildAskArgs', () => {
     expect(args).toContain('--output-format');
     expect(args).toContain('stream-json');
     expect(args).toContain('--verbose');
+    expect(args).toContain('--include-partial-messages'); // E3 — 긴 propose 생성 중 무출력 타임아웃 방지
     expect(args).toContain('--strict-mcp-config');
     const allowed = args[args.indexOf('--allowedTools') + 1];
     expect(allowed).toBe(ASK_TOOLS.join(','));

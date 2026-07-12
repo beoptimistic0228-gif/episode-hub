@@ -53,6 +53,10 @@ export function buildAskArgs(opts: { mcpConfigPath: string; resumeSessionId?: st
   const args = [
     '-p',
     '--output-format', 'stream-json', '--verbose',
+    // E3: propose_edit는 파일 전체 새 내용을 도구 입력으로 한 번에 생성한다 — 완성 메시지만 받으면
+    // 생성 내내 stdout이 침묵해 무출력 타임아웃(120s)에 오살된다. 부분 조각을 흘려 keep-alive.
+    // (parseStreamLine이 stream_event 라인은 null로 무시하므로 이벤트 처리엔 영향 없음)
+    '--include-partial-messages',
     '--mcp-config', opts.mcpConfigPath, '--strict-mcp-config',
     '--allowedTools', ASK_TOOLS.join(','),
     '--disallowedTools', DENY_TOOLS,
