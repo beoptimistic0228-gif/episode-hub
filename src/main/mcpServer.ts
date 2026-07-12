@@ -240,7 +240,7 @@ export async function startMcpBridgeWithRetry(
       lastErr = e;
       if ((e as NodeJS.ErrnoException)?.code !== 'EADDRINUSE') throw e;
       console.error(`[mcp-bridge] 포트 점유 — ${delayMs / 1000}s 후 재시도 (${i + 1}/${tries})`);
-      await sleep(delayMs);
+      if (i < tries - 1) await sleep(delayMs);
     }
   }
   throw lastErr;

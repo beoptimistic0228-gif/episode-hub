@@ -14,8 +14,10 @@ describe('startMcpBridgeWithRetry', () => {
   });
   test('tries 소진 시 마지막 에러 throw', async () => {
     const starter = vi.fn().mockRejectedValue(eaddr());
-    await expect(startMcpBridgeWithRetry(opts, { starter, sleep: async () => {}, tries: 3 })).rejects.toMatchObject({ code: 'EADDRINUSE' });
+    const sleep = vi.fn(async () => {});
+    await expect(startMcpBridgeWithRetry(opts, { starter, sleep, tries: 3 })).rejects.toMatchObject({ code: 'EADDRINUSE' });
     expect(starter).toHaveBeenCalledTimes(3);
+    expect(sleep).toHaveBeenCalledTimes(2);
   });
   test('EADDRINUSE 외 원인은 즉시 throw(재시도 없음)', async () => {
     const starter = vi.fn().mockRejectedValue(new Error('boom'));
