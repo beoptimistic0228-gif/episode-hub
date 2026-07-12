@@ -9,7 +9,7 @@ import { latestSnapshot } from '@shared/stats';
 import { safeEpisodePath, resolveImagePath } from './pathGuard';
 import { startWatcher } from './watcher';
 import { loadOrCreateToken, writeMcpJson, MCP_PORT } from './mcpBridge';
-import { startMcpBridge, type BridgeHandle } from './mcpServer';
+import { startMcpBridgeWithRetry, type BridgeHandle } from './mcpServer';
 import { registerAiIpc } from './aiIpc';
 
 // hub://<episodeId>/<relPath> → <root>/output/episodes/<id>/<relPath> (이미지 표시용)
@@ -109,10 +109,10 @@ app.whenReady().then(() => {
 
   void (async () => {
     try {
-      bridge = await startMcpBridge({
+      bridge = await startMcpBridgeWithRetry({
         getRoot, token: mcpToken, port: MCP_PORT, getImageRoot,
         getActiveAskEpisode: aiIpc.getActiveAskEpisode,
-      });
+      }, {});
     } catch (e) {
       // 포트 사용중·git 루트 미발견 등 — 브리지만 스킵, 앱은 정상 (토큰은 e에 미포함)
       console.error('[mcp-bridge] start skipped:', e);

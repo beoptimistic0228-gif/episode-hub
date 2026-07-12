@@ -213,3 +213,35 @@ export function startMcpBridge(opts: {
     });
   });
 }
+
+export interface RetryOpts {
+  tries?: number;                       // 기본 10
+  delayMs?: number;                     // 기본 3000
+  sleep?: (ms: number) => Promise<void>;
+  starter?: typeof startMcpBridge;      // 테스트 DI
+}
+
+/** EADDRINUSE(이전 인스턴스가 아직 포트 점유)일 때만 재시도 — 앱 재시작 레이스 자동 회복.
+ *  다른 원인은 즉시 throw(재시도 무의미). */
+export async function startMcpBridgeWithRetry(
+  opts: Parameters<typeof startMcpBridge>[0], retry: RetryOpts = {},
+): Promise<BridgeHandle> {
+  const tries = retry.tries ?? 10;
+  const delayMs = retry.delayMs ?? 3000;
+  const sleep = retry.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
+  const starter = retry.starter ?? startMcpBridge;
+  let lastErr: unknown;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const handle = await starter(opts);
+      if (i > 0) console.log(`[mcp-bridge] ${i + 1}번째 시도에 기동 성공`);
+      return handle;
+    } catch (e) {
+      lastErr = e;
+      if ((e as NodeJS.ErrnoException)?.code !== 'EADDRINUSE') throw e;
+      console.error(`[mcp-bridge] 포트 점유 — ${delayMs / 1000}s 후 재시도 (${i + 1}/${tries})`);
+      await sleep(delayMs);
+    }
+  }
+  throw lastErr;
+}
