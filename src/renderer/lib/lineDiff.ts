@@ -1,11 +1,16 @@
 export type DiffRow = { type: 'same' | 'del' | 'add'; text: string };
 
+const MAX_CELLS = 40_000_000; // ≈수만 줄 — 초과 시 O(n·m) 메모리가 렌더러를 멈춘다
+
 /** 줄 단위 LCS diff — 대상이 소형 md(수천 줄 이하)라 O(n·m) DP로 충분, 외부 의존 없음. */
 export function lineDiff(oldText: string, newText: string): DiffRow[] {
   const a = oldText === '' ? [] : oldText.split('\n');
   const b = newText === '' ? [] : newText.split('\n');
   const n = a.length;
   const m = b.length;
+  if (n * m > MAX_CELLS) {
+    return [...a.map((text) => ({ type: 'del' as const, text })), ...b.map((text) => ({ type: 'add' as const, text }))];
+  }
   // dp[i][j] = a[i..] vs b[j..]의 LCS 길이
   const dp: Uint32Array[] = Array.from({ length: n + 1 }, () => new Uint32Array(m + 1));
   for (let i = n - 1; i >= 0; i--) {

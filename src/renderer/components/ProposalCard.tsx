@@ -61,11 +61,22 @@ export default function ProposalCard({ episodeId, items: initial, onItemsChange 
   };
 
   const apply = async (force: boolean) => {
-    const ids = items.filter((it) => selectable(it) && checked.has(it.itemId)).map((it) => it.itemId);
-    if (!ids.length) return;
+    // force=true("그래도 적용")는 실제 충돌 항목에만 걸고, 체크된 나머지 pending 항목은
+    // 정상 경로(mtime 검사)로 보낸다 — 충돌 안 난 파일까지 무검사로 덮어쓰지 않기 위함.
+    const checkedItems = items.filter((it) => selectable(it) && checked.has(it.itemId));
+    const conflictIds = force ? checkedItems.filter((it) => it.status === 'conflict').map((it) => it.itemId) : [];
+    const pendingIds = force
+      ? checkedItems.filter((it) => it.status !== 'conflict').map((it) => it.itemId)
+      : checkedItems.map((it) => it.itemId);
+    if (!conflictIds.length && !pendingIds.length) return;
     setBusy(true);
-    try { applyStatuses(await window.hub.ai.applyProposal(episodeId, ids, force)); }
-    catch {
+    try {
+      const results = [
+        ...(pendingIds.length ? await window.hub.ai.applyProposal(episodeId, pendingIds, false) : []),
+        ...(conflictIds.length ? await window.hub.ai.applyProposal(episodeId, conflictIds, true) : []),
+      ];
+      applyStatuses(results);
+    } catch {
       const next = items.map((it) => (checked.has(it.itemId) && selectable(it) ? { ...it, status: 'failed' as const } : it));
       setItems(next);
       onItemsChange?.(next);
