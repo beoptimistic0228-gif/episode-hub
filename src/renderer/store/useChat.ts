@@ -34,6 +34,8 @@ interface ChatState {
   newChat: () => Promise<void>;
   setActiveEpisode: (id: string) => Promise<void>;
   togglePanel: () => void;
+  /** ProposalCard가 적용/거부 결과를 스레드 버블에 되새김 — 리마운트 시 상태 보존 */
+  syncProposalStatus: (episodeId: string, items: ProposalCardItem[]) => void;
 }
 
 /** 해당 에피소드 스레드만 함수로 갱신(없으면 생성) — 이벤트 유실 방지의 핵심 */
@@ -149,5 +151,18 @@ export const useChat = create<ChatState>((set, get) => ({
     const open = !get().panelOpen;
     localStorage.setItem(PANEL_KEY, open ? 'on' : 'off');
     set({ panelOpen: open, ...(open ? { unread: false } : {}) });
+  },
+
+  syncProposalStatus: (episodeId, items) => {
+    const byId = new Map(items.map((i) => [i.itemId, i]));
+    set((st) => ({
+      threads: patchThread(st.threads, episodeId, (t) => ({
+        ...t,
+        bubbles: t.bubbles.map((b) =>
+          b.role === 'proposal'
+            ? { ...b, items: b.items.map((it) => byId.get(it.itemId) ?? it) }
+            : b),
+      })),
+    }));
   },
 }));

@@ -117,6 +117,18 @@ describe('useChat — 대화 저장소', () => {
     expect(thread().restored).toBe(true);
   });
 
+  test('syncProposalStatus — 카드 적용 결과가 스레드 버블에 반영·보존', async () => {
+    await useChat.getState().setActiveEpisode(EP);
+    const h = useChat.getState().handleStream;
+    h(ev({ kind: 'propose', itemId: 'p1', relPath: 'script/a.md', reason: 'r', isNew: false }));
+    h(ev({ kind: 'done' }));
+    useChat.getState().syncProposalStatus(EP, [
+      { itemId: 'p1', relPath: 'script/a.md', reason: 'r', isNew: false, status: 'applied' },
+    ]);
+    const bubble = thread().bubbles.at(-1);
+    expect(bubble).toMatchObject({ role: 'proposal', items: [{ itemId: 'p1', status: 'applied' }] });
+  });
+
   test('error 이벤트 — error 말풍선 + live 버림', async () => {
     await useChat.getState().setActiveEpisode(EP);
     const h = useChat.getState().handleStream;

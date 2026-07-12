@@ -15,9 +15,14 @@ const STATUS_LABEL: Record<ProposalCardItem['status'], string> = {
 };
 
 /** E3 제안 카드 — 파일별 체크박스로 골라 적용. diff 행은 textContent로만 렌더(innerHTML 금지). */
-export default function ProposalCard({ episodeId, items: initial }: { episodeId: string; items: ProposalCardItem[] }) {
+export default function ProposalCard({ episodeId, items: initial, onItemsChange }: {
+  episodeId: string; items: ProposalCardItem[]; onItemsChange?: (items: ProposalCardItem[]) => void;
+}) {
   const [items, setItems] = useState(initial);
-  const [checked, setChecked] = useState<Set<string>>(new Set(initial.map((i) => i.itemId))); // 기본 전체 체크
+  // 기본 전체 체크 — 단, 이미 적용/거부/실패 확정된 항목은 리마운트 시 다시 체크하지 않음(selectable만)
+  const [checked, setChecked] = useState<Set<string>>(
+    new Set(initial.filter((i) => i.status === 'pending' || i.status === 'conflict').map((i) => i.itemId)),
+  );
   const [open, setOpen] = useState<string | null>(null);
   const [rows, setRows] = useState<DiffRow[]>([]);
   const [busy, setBusy] = useState(false);
@@ -43,21 +48,28 @@ export default function ProposalCard({ episodeId, items: initial }: { episodeId:
     setOpen(id);
   };
 
-  const applyStatuses = (rs: Awaited<ReturnType<typeof window.hub.ai.applyProposal>>) =>
-    setItems((prev) => prev.map((it) => {
+  const applyStatuses = (rs: Awaited<ReturnType<typeof window.hub.ai.applyProposal>>) => {
+    const next = items.map((it) => {
       const r = rs.find((x) => x.itemId === it.itemId);
       if (!r) return it;
       if ('ok' in r) return { ...it, status: 'applied' as const };
       if ('conflict' in r) return { ...it, status: 'conflict' as const };
       return { ...it, status: 'failed' as const };
-    }));
+    });
+    setItems(next);
+    onItemsChange?.(next);
+  };
 
   const apply = async (force: boolean) => {
     const ids = items.filter((it) => selectable(it) && checked.has(it.itemId)).map((it) => it.itemId);
     if (!ids.length) return;
     setBusy(true);
     try { applyStatuses(await window.hub.ai.applyProposal(episodeId, ids, force)); }
-    catch { setItems((prev) => prev.map((it) => (checked.has(it.itemId) && selectable(it) ? { ...it, status: 'failed' } : it))); }
+    catch {
+      const next = items.map((it) => (checked.has(it.itemId) && selectable(it) ? { ...it, status: 'failed' as const } : it));
+      setItems(next);
+      onItemsChange?.(next);
+    }
     setBusy(false);
   };
 
@@ -65,7 +77,9 @@ export default function ProposalCard({ episodeId, items: initial }: { episodeId:
     setBusy(true);
     try {
       await window.hub.ai.rejectProposal(episodeId, openItems.map((i) => i.itemId));
-      setItems((prev) => prev.map((it) => (selectable(it) ? { ...it, status: 'rejected' } : it)));
+      const next = items.map((it) => (selectable(it) ? { ...it, status: 'rejected' as const } : it));
+      setItems(next);
+      onItemsChange?.(next);
     } catch { /* 거부 실패 — 상태 유지 */ }
     setBusy(false);
   };

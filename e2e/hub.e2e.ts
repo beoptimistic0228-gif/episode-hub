@@ -370,4 +370,5 @@ test('⑫ 패널 보존: 대시보드 이동→복귀에도 말풍선·제안 �
   await expect(page.locator('.chat-fab')).toBeVisible();
   await page.locator('.chat-fab').click();
   await expect(page.locator('.ask-bubble.user')).toHaveCount(userBubbles);
+  await expect(page.locator('.proposal-card').last()).toContainText('적용됨'); // 리마운트에도 상태 보존
 });

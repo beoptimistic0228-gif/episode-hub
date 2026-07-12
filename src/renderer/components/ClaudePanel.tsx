@@ -66,7 +66,12 @@ export default function ClaudePanel() {
             <div className="ask-thread">
               {(thread?.bubbles ?? []).map((b, i) =>
                 b.role === 'proposal'
-                  ? <ProposalCard key={i} episodeId={activeEpisodeId} items={b.items} />
+                  ? <ProposalCard
+                      key={i}
+                      episodeId={activeEpisodeId}
+                      items={b.items}
+                      onItemsChange={(items) => useChat.getState().syncProposalStatus(activeEpisodeId, items)}
+                    />
                   : b.role === 'assistant'
                     ? <div key={i} className="ask-bubble assistant md-view" dangerouslySetInnerHTML={{ __html: renderMarkdown(b.text) }} />
                     : <div key={i} className={`ask-bubble ${b.role}`}>{b.text}</div>,
