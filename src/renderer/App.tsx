@@ -2,7 +2,9 @@ import { useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import EpisodeView from './components/EpisodeView';
+import ClaudePanel from './components/ClaudePanel';
 import { useHub } from './store/useHub';
+import { useChat } from './store/useChat';
 
 export default function App() {
   const { init, root, pickRoot, page } = useHub();
@@ -15,7 +17,9 @@ export default function App() {
     const offStats = window.hub.events.onStatsChanged(() => {
       void useHub.getState().loadStats();
     });
-    return () => { offEpisodes(); offStats(); };
+    void useChat.getState().initAi();
+    const offAi = window.hub.ai.onStream((ev) => useChat.getState().handleStream(ev));
+    return () => { offEpisodes(); offStats(); offAi(); };
   }, [init]);
 
   return (
@@ -32,6 +36,7 @@ export default function App() {
           </div>
         )}
       </main>
+      <ClaudePanel />
     </div>
   );
 }
