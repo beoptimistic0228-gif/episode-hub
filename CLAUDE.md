@@ -22,7 +22,7 @@
 ## MCP 브리지 (AI→앱, v0.2.0)
 앱 기동 시 `127.0.0.1:7801`에 HTTP MCP 서버(Bearer 토큰, 콘텐츠 레포 루트에 gitignored `.mcp.json` 자동생성). tool 9종(`list_episodes`·`read_episode`·`read_file`·`get_channel_stats`·`write_file`·`patch_episode`·`save_render`·`git_complete`·`propose_edit`)으로 Claude Code가 에피소드 읽기/쓰기. 핵심: `src/main/mcpBridge.ts`(토큰·`.mcp.json`)·`src/main/mcpServer.ts`(HTTP 서버·tool). `.mcp.json`은 루트 확정 시점(`onRootChanged`)마다 기록.
 
-**E2(앱→AI, 읽기 전용 Q&A)**: 에피소드 화면 "Claude에게 물어보기" 패널 — `src/main/aiBridge.ts`가 headless `claude -p`를 spawn(읽기 4종 `--allowedTools` 잠금, `--resume` 이어묻기, Owner PC 전용 CLI 감지). 설계 `docs/superpowers/specs/2026-07-11-episode-hub-phase-e2-ask-ai-design.md`.
+**E2(앱→AI, 읽기 전용 Q&A)**: 전역 우측 도킹 Claude 패널(에피소드별 대화 보존·ON/OFF, 2026-07-12 개편) — `src/main/aiBridge.ts`가 headless `claude -p`를 spawn(읽기 4종 `--allowedTools` 잠금, `--resume` 이어묻기, Owner PC 전용 CLI 감지). 설계 `docs/superpowers/specs/2026-07-11-episode-hub-phase-e2-ask-ai-design.md`.
 
 **E3(앱→AI 자유 지시, 제안→승인→적용)**: 같은 패널에서 수정 지시 — 스폰된 Claude는 `propose_edit`(스테이징)로 수정안만 제출하고(쓰기 권한 0, DENY_TOOLS 불변), 부부가 제안 카드에서 파일별로 골라 승인하면 main이 `writeText`(mtime 충돌 감지)로 저장한다. 대상은 보고 있는 에피소드의 `.md`만. 핵심: `src/main/proposalStore.ts`. 설계 `docs/superpowers/specs/2026-07-12-episode-hub-phase-e3-propose-apply-design.md`.
 

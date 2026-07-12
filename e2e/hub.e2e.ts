@@ -117,7 +117,10 @@ test.beforeAll(async () => {
   // ── 앱 실행 ─────────────────────────────────────────────────────
   app = await electron.launch({
     args: [MAIN, `--user-data-dir=${tempUserData}`],
-    env: { ...process.env, HUB_STATS_MOCK: mockFx, YOUTUBE_API_KEY: 'TESTKEY', HUB_CLAUDE_BIN: join(__dirname, 'stub', 'claude.cmd') },
+    // HUB_MCP_PORT: 로컬에 이미 떠 있는 dev 인스턴스(고정 7801)와 격리 — 미격리 시 e2e 인스턴스의
+    // MCP 서버 listen()이 EADDRINUSE로 스킵되고, .mcp.json은 여전히 7801을 가리켜 스텁이 dev 인스턴스의
+    // (다른 토큰) 서버로 오접속 → unauthorized. 다른 임시 격리(tempUserData·temp git·mock stats)와 동일 원칙.
+    env: { ...process.env, HUB_STATS_MOCK: mockFx, YOUTUBE_API_KEY: 'TESTKEY', HUB_CLAUDE_BIN: join(__dirname, 'stub', 'claude.cmd'), HUB_MCP_PORT: '47801' },
   });
   page = await app.firstWindow();
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
@@ -310,6 +313,7 @@ test('⑩ Claude 질문: 스텁 claude로 질문 → 답변 말풍선 표시', a
   await page.waitForSelector('nav.tab-bar'); // 에피소드 화면 진입 → AskClaude 패널 마운트
 
   // HUB_CLAUDE_BIN이 스텁을 가리키므로 ai:status.available=true → 입력창이 뜬다(불가 안내 아님).
+  await expect(page.locator('.chat-panel')).toBeVisible();
   const input = page.locator('.ask-input');
   await expect(input).toBeVisible();
   await input.fill('예산 얼마야?');
@@ -341,4 +345,29 @@ test('⑪ E3 수정 지시: 제안 카드 → 선택 적용 → 파일 반영', 
     .poll(() => readFileSync(join(epDir, 'script', '콘티.md'), 'utf-8'))
     .toBe('# 콘티\n\nE2E-PROPOSED\n');
   await expect(card).toContainText('적용됨');
+});
+
+// ── 패널 개편: 대시보드 왕복에도 대화가 유지된다 ────────────────────────────
+test('⑫ 패널 보존: 대시보드 이동→복귀에도 말풍선·제안 카드 유지', async () => {
+  // ⑪이 남긴 대화(user 말풍선 + 적용됨 카드)가 기준선.
+  const userBubbles = await page.locator('.ask-bubble.user').count();
+  expect(userBubbles).toBeGreaterThan(0);
+
+  // 대시보드로 이동 — 패널은 전역이라 그대로, 대화도 그대로.
+  await page.locator('.sidebar .nav-page').click();
+  await expect(page.locator('.stat-tile').first()).toBeVisible();
+  await expect(page.locator('.chat-panel')).toBeVisible();
+  await expect(page.locator('.ask-bubble.user')).toHaveCount(userBubbles);
+  await expect(page.locator('.proposal-card').last()).toContainText('적용됨');
+
+  // 에피소드로 복귀해도 동일.
+  await page.locator('.ep-card', { hasText: 'E2E 룸' }).click();
+  await page.waitForSelector('nav.tab-bar');
+  await expect(page.locator('.ask-bubble.user')).toHaveCount(userBubbles);
+
+  // 패널 토글: 닫으면 FAB, 다시 열면 대화 그대로.
+  await page.locator('.chat-panel-head button[title="패널 닫기"]').click();
+  await expect(page.locator('.chat-fab')).toBeVisible();
+  await page.locator('.chat-fab').click();
+  await expect(page.locator('.ask-bubble.user')).toHaveCount(userBubbles);
 });
