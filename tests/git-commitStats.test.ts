@@ -22,8 +22,8 @@ const hasGit = (() => { try { execFileSync('git', ['--version'], { stdio: 'ignor
   afterEach(() => rmSync(base, { recursive: true, force: true }));
 
   test('통계 파일 커밋+푸시', () => {
-    mkdirSync(join(repo, 'episode-hub', 'data'), { recursive: true });
-    writeFileSync(join(repo, 'episode-hub', 'data', 'channel_stats.json'), '{"schema_version":1}\n');
+    mkdirSync(join(repo, 'orchestrator', 'data'), { recursive: true });
+    writeFileSync(join(repo, 'orchestrator', 'data', 'channel_stats.json'), '{"schema_version":1}\n');
     return commitStats(orch).then((res) => {
       expect(res).toEqual({ ok: true, pushed: true });
       expect(g(repo, 'log', '--oneline', 'origin/main')).toContain('채널 통계');

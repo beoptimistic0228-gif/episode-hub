@@ -53,7 +53,7 @@ describe('readStats', () => {
   test('파일 없으면 빈 구조', () => {
     const g = mkdtempSync(join(tmpdir(), 'hub-stats-'));
     expect(readStats(g)).toEqual({ schema_version: 1, snapshots: [], videos: {} });
-    expect(statsFilePath(g).endsWith(join('episode-hub', 'data', 'channel_stats.json'))).toBe(true);
+    expect(statsFilePath(g).endsWith(join('orchestrator', 'data', 'channel_stats.json'))).toBe(true);
     rmSync(g, { recursive: true, force: true });
   });
 });

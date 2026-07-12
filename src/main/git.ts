@@ -170,7 +170,7 @@ export async function completeEpisode(orchestratorRoot: string, episodeId: strin
   return { ok: true, pushed: true };
 }
 
-const STATS_REL = 'episode-hub/data/channel_stats.json';
+const STATS_REL = 'orchestrator/data/channel_stats.json';
 
 /** 통계 파일만 add→commit→push (completeEpisode의 파일 스코프 판). 비치명적 실패 반환. */
 export async function commitStats(orchestratorRoot: string): Promise<CompleteResult> {

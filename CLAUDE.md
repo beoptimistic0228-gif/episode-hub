@@ -7,7 +7,7 @@
 이 앱은 **자기 안에 콘텐츠를 갖지 않는다.** 실행 시 사용자가 고른 **orchestrator 폴더**(= `nakgwan-channel-infra`를 clone한 곳의 `orchestrator/`)를 가리켜:
 - `output/episodes/`를 읽고,
 - 그 폴더의 git에 커밋(Complete 버튼)하며,
-- `episode-hub/data/channel_stats.json`(콘텐츠 레포)에 채널 통계를 기록하고,
+- `orchestrator/data/channel_stats.json`(콘텐츠 레포)에 채널 통계를 기록하고,
 - 그 레포 루트에 `.mcp.json`을 쓴다.
 
 즉 **콘텐츠 레포를 별도로 clone**해야 하고, 앱은 그 위치를 폴더 선택/저장 config(userData `hub-config.json`)로 안다. 앱 코드 위치(이 레포)와 콘텐츠 위치는 무관하다.

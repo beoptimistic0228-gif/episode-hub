@@ -123,7 +123,8 @@ export async function collectSnapshot(
 }
 
 export function statsFilePath(gitRoot: string): string {
-  return join(gitRoot, 'episode-hub', 'data', 'channel_stats.json');
+  // 2026-07-10 통계 경로 이전(콘텐츠 레포 e3a2464)의 앱 측 반영 — 옛 루트 episode-hub/data는 폐지.
+  return join(gitRoot, 'orchestrator', 'data', 'channel_stats.json');
 }
 
 export function readStats(gitRoot: string): ChannelStats {
