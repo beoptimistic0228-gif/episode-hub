@@ -186,7 +186,7 @@ export function startMcpBridge(opts: {
       if (req.method !== 'POST') { res.writeHead(405).end(); return; } // stateless: GET/DELETE 미지원
       try {
         const body = await readJsonBody(req);
-        const server = new McpServer({ name: 'episode-hub', version: '0.1.0' });
+        const server = new McpServer({ name: 'episode-hub', version: '0.3.0' });
         registerEpisodeTools(server, opts.getRoot, opts.getImageRoot, { getActiveAskEpisode: opts.getActiveAskEpisode });
         const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
         res.on('close', () => { void transport.close(); void server.close(); });

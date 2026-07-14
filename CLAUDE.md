@@ -16,6 +16,8 @@
 - `npm install` → `npm run dev`(electron-vite) / `npm run build` / `npm run test`(vitest) / `npm run test:e2e`(Playwright-Electron) / `npm run typecheck` / `npm run dist`(NSIS exe).
 - 게이트: unit 그린 · typecheck 0 · build OK · e2e 그린.
 - 개발 방식: 하네스 팀(서브에이전트 구현→리뷰→픽스) — superpowers 스킬. 스펙은 `docs/superpowers/specs`, 계획은 `docs/superpowers/plans`. (Phase A~E1 스펙·계획은 분리 시 복사됨; 그 이전 역사는 콘텐츠 레포에도 있음.)
+- ⚠️ **진척의 정본은 `.superpowers/sdd/progress.md`다.** plans의 체크박스는 갱신하지 않으므로 미체크 상태를 "미착수"로 읽지 마라 (Phase A~E3·Claude 패널·하드닝은 완료). 단 `2026-07-08-…-dashboard-expansion.md`는 실제 미완(작업 브랜치 폐기됨).
+- 앱 버전 정본은 `package.json`(현재 0.3.0 — dist 파일명·GitHub Release 이름이 여기서 나옴). 기능 묶음 배포 전 범프.
 - Agent 모델 가용성은 PC/플랜마다 다름 — 특정 모델 제약을 이 문서에 박지 말고 디스패치 시점에 확인.
 - 배포: `npm run dist` → `release/EpisodeHub-Setup-<v>.exe` → GitHub Release(`build.publish` = 이 레포 `beoptimistic0228-gif/episode-hub`).
 
