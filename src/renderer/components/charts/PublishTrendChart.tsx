@@ -30,7 +30,7 @@ export default function PublishTrendChart({ publications }: { publications: Publ
       <h4 className="chart-title">발행 추이 (주별)</h4>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--hairline)" />
           <XAxis dataKey="week" fontSize={11} />
           <YAxis fontSize={11} width={28} allowDecimals={false} />
           <Tooltip />

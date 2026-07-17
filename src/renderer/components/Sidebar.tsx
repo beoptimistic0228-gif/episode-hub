@@ -1,4 +1,5 @@
 import { useHub } from '../store/useHub';
+import Icon from './Icon';
 import bannerImg from '../assets/brand-banner.png';
 import snsYoutube from '../assets/sns-youtube.png';
 import snsInstagram from '../assets/sns-instagram.png';
@@ -31,7 +32,7 @@ export default function Sidebar() {
         className={`ep-item nav-page${page === 'dashboard' ? ' selected' : ''}`}
         onClick={goDashboard}
       >
-        🏠 대시보드
+        <Icon name="home" /> 대시보드
       </button>
       <div className="section-label">Episodes</div>
       <nav>

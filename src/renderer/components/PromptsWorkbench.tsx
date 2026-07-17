@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { EpisodeDetail } from '@shared/types';
 import MarkdownView from './MarkdownView';
+import Icon from './Icon';
 import { matchPhoto, parseMasterSheet, type SkuSection } from '../lib/promptMatch';
 import { useHub } from '../store/useHub';
 import { normCategory, RENDER_ROWS } from '@shared/episode';
@@ -19,7 +20,7 @@ function CopyButton({ text }: { text: string }) {
         setTimeout(() => setCopied(false), 1500);
       }}
     >
-      {copied ? '✓ 복사됨' : '📋 복사'}
+      {copied ? '✓ 복사됨' : <><Icon name="copy" /> 복사</>}
     </button>
   );
 }

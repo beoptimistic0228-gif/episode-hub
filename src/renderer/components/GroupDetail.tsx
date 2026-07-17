@@ -3,6 +3,7 @@ import type { GroupKey } from '@shared/groups';
 import type { EpisodeDetail, FileEntry } from '@shared/types';
 import MarkdownEditor from './MarkdownEditor';
 import PromptsWorkbench from './PromptsWorkbench';
+import Icon from './Icon';
 
 const hubUrl = (id: string, relPath: string) =>
   `hub://${id}/${relPath.split('/').map(encodeURIComponent).join('/')}`;
@@ -48,7 +49,7 @@ export default function GroupDetail({
                   className={`file-item${openMd?.relPath === f.relPath ? ' selected' : ''}`}
                   onClick={() => setOpenMd(f)}
                 >
-                  📄 {f.name}
+                  <Icon name="file" /> {f.name}
                 </button>
               ))}
             </div>

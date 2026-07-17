@@ -5,11 +5,12 @@ import PublishCalendar from './PublishCalendar';
 import GrowthChart from './charts/GrowthChart';
 import PublishTrendChart from './charts/PublishTrendChart';
 import { useHub } from '../store/useHub';
+import Icon from './Icon';
 
 function DeltaBadge({ d }: { d: Delta }) {
   if (d.sign === 'flat') return null;
   const sym = d.sign === 'up' ? '▲' : '▼';
-  const color = d.sign === 'up' ? '#246d38' : '#ea4f23'; // forest/ember, 기호 병기(접근성)
+  const color = d.sign === 'up' ? 'var(--forest)' : 'var(--ember)'; // 기호 병기(접근성)
   return <span className="kpi-delta" style={{ color }}>{sym}{Math.abs(d.value).toLocaleString()}</span>;
 }
 
@@ -34,7 +35,7 @@ export default function Dashboard() {
         <div className="dash-head-right">
           {cur && <span className="dash-updated">갱신 {relTime(cur.at)}</span>}
           <button className="refresh-btn" onClick={() => void refreshStats()} disabled={statsRefreshing}>
-            {statsRefreshing ? '🔄 수집 중…' : '🔄 새로고침'}
+            <Icon name="refresh" />{statsRefreshing ? '수집 중…' : '새로고침'}
           </button>
         </div>
       </div>

@@ -57,6 +57,13 @@
 
 * { box-sizing: border-box; margin: 0; }
 
+/* 모든 버튼에 포인터 커서 — .chip·.sns-btn 등 명시 안 한 곳까지 일관 어포던스 */
+button:not(:disabled) { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+
+/* 라인 아이콘 — 텍스트 옆 정렬(이모지 아이콘 대체, Icon.tsx) */
+.icon { display: inline-block; vertical-align: -0.14em; flex-shrink: 0; }
+
 body {
   font-family: 'Pretendard Variable', 'Pretendard', 'Spoqa Han Sans Neo', 'Noto Sans KR', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: var(--ink);
@@ -185,6 +192,10 @@ body {
 }
 .chip.success { background: var(--success-tint); color: var(--forest-deep); }
 .chip.error { background: var(--error-tint); color: var(--error); }
+/* .chip이 버튼으로 쓰일 때(새 대화·닫기·보내기·중단) hover 피드백 — 라벨 칩엔 영향 없음 */
+button.chip { transition: background var(--ease), color var(--ease); }
+button.chip:hover:not(:disabled) { background: var(--hairline); color: var(--ink); }
+button.chip:disabled { opacity: 0.5; }
 /* 기획 견적 — 창의 해: 유일한 하이라이트 (검증 페어 ink-on-sun) */
 .price-tag {
   display: inline-block; background: var(--sun); color: var(--ink0);
@@ -457,28 +468,34 @@ body {
 /* Phase D+ 대시보드 확장 */
 .dash-head { display: flex; align-items: baseline; justify-content: space-between; }
 .dash-head-right { display: flex; align-items: center; gap: 12px; }
-.dash-updated { font-size: 12px; color: #888; }
-.refresh-btn { border: 1px solid #ddd; background: #fff; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
-.refresh-btn:hover { background: #f5f5f5; }
-.refresh-btn:disabled { opacity: .6; cursor: default; }
+.dash-updated { font-size: 12px; color: var(--ink-mute); }
+.refresh-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--hairline); background: var(--canvas); color: var(--ink);
+  border-radius: var(--r-md); padding: 6px 12px; font-size: 13px; font-family: inherit;
+  box-shadow: var(--shadow-xs);
+  transition: background var(--ease), border-color var(--ease), box-shadow var(--ease);
+}
+.refresh-btn:hover:not(:disabled) { background: var(--surface-tint); border-color: var(--sky-deep); box-shadow: var(--shadow-sm); }
+.refresh-btn:disabled { opacity: .55; }
 .kpi-delta { font-size: 12px; margin-left: 6px; font-variant-numeric: tabular-nums; }
-.stat-note { font-size: 12px; color: #a15; margin: 6px 0; }
+.stat-note { font-size: 12px; color: var(--error); margin: 6px 0; }
 .chart-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin: 16px 0; }
-.chart-card { border: 1px solid #eee; border-radius: 12px; padding: 12px; background: #fff; }
+.chart-card { border: 1px solid var(--hairline); border-radius: var(--r-lg); padding: 12px; background: var(--canvas); box-shadow: var(--shadow-sm); }
 .chart-title { margin: 0 0 8px; font-size: 14px; }
-.chart-empty { border: 1px dashed #ddd; border-radius: 12px; padding: 24px; text-align: center; color: #999; font-size: 13px; }
-.views-tag { font-size: 12px; color: #ea4f23; font-variant-numeric: tabular-nums; margin-left: auto; }
+.chart-empty { border: 1px dashed var(--hairline); border-radius: var(--r-lg); padding: 24px; text-align: center; color: var(--ink-mute); font-size: 13px; }
+.views-tag { font-size: 12px; color: var(--ember); font-variant-numeric: tabular-nums; margin-left: auto; }
 
 /* ── E2: Claude에게 물어보기 패널 ── */
 .ask-thread { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }
 .ask-bubble { max-width: 85%; padding: 8px 12px; border-radius: 10px; white-space: pre-wrap; }
 .ask-bubble.user { align-self: flex-end; background: var(--sky); }
-.ask-bubble.assistant { align-self: flex-start; background: rgba(0, 0, 0, 0.05); white-space: normal; }
-.ask-bubble.error { align-self: flex-start; background: rgba(234, 79, 35, 0.12); color: #a33; }
-.ask-step { font-size: 12px; opacity: 0.6; }
-.ask-unavailable { opacity: 0.6; }
+.ask-bubble.assistant { align-self: flex-start; background: var(--surface-tint); white-space: normal; }
+.ask-bubble.error { align-self: flex-start; background: var(--error-tint); color: var(--error); }
+.ask-step { font-size: 12px; color: var(--ink-mute); }
+.ask-unavailable { color: var(--ink-mute); }
 .ask-input-row { display: flex; gap: 8px; }
-.ask-input { flex: 1; padding: 8px 10px; border: 1px solid var(--hairline); border-radius: 8px; }
+.ask-input { flex: 1; padding: 8px 10px; border: 1px solid var(--hairline); border-radius: var(--r-md); font-family: inherit; }
 
 /* ── E3 제안 카드 ─────────────────────────────── */
 .proposal-card { border: 1px solid var(--hairline, #d8d3cb); border-radius: 12px; padding: 10px 12px; margin: 8px 0; background: var(--canvas, #fff); }
@@ -486,9 +503,9 @@ body {
 .proposal-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .proposal-file { background: none; border: none; cursor: pointer; text-decoration: underline; font-family: inherit; padding: 0; }
 .proposal-reason { opacity: 0.75; font-size: 0.9em; flex: 1; }
-.proposal-status.applied { color: #2c7a3f; font-weight: 600; }
-.proposal-status.rejected, .proposal-status.failed { color: #a33; }
-.proposal-status.conflict { color: #b7791f; }
+.proposal-status.applied { color: var(--forest); font-weight: 600; }
+.proposal-status.rejected, .proposal-status.failed { color: var(--error); }
+.proposal-status.conflict { color: #b7791f; } /* 경고 앰버 — 팔레트에 warn 토큰 없음(대비 4.5:1 통과) */
 .proposal-actions { display: flex; gap: 8px; margin-top: 8px; }
 .diff-view { max-height: 320px; overflow: auto; font-family: ui-monospace, Consolas, monospace; font-size: 12px; border: 1px solid var(--hairline, #d8d3cb); border-radius: 8px; margin: 4px 0 8px; }
 .diff-row { padding: 0 8px; white-space: pre-wrap; }

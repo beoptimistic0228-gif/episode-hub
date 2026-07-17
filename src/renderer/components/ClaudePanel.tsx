@@ -4,6 +4,7 @@ import { renderMarkdown } from '../lib/markdown';
 import { useChat } from '../store/useChat';
 import { useHub } from '../store/useHub';
 import ProposalCard from './ProposalCard';
+import Icon from './Icon';
 
 /** 전역 우측 도킹 Claude 패널 — 대화 상태는 전부 useChat(store)에, 여기는 표시만. */
 export default function ClaudePanel() {
@@ -60,7 +61,7 @@ export default function ClaudePanel() {
         <img src={botImg} alt="" aria-hidden />
         <span className="chat-panel-title">{title ? `💬 ${title}` : 'Claude'}</span>
         {activeEpisodeId && available !== false && <button className="chip" onClick={() => void newChat()} disabled={busy}>새 대화</button>}
-        <button className="chip" onClick={togglePanel} title="패널 닫기" aria-label="패널 닫기">✕</button>
+        <button className="chip" onClick={togglePanel} title="패널 닫기" aria-label="패널 닫기"><Icon name="close" /></button>
       </div>
 
       {available === false ? (

@@ -20,7 +20,7 @@ export default function GrowthChart({ snapshots }: { snapshots: ChannelSnapshot[
       <h4 className="chart-title">성장 추이</h4>
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={data} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--hairline)" />
           <XAxis dataKey="date" fontSize={11} />
           {/* 구독자·블로그이웃은 스케일이 달라 각자 축을 둔다(한쪽이 눌려 보이지 않게) */}
           <YAxis yAxisId="left" fontSize={11} width={44} stroke={YT} />
