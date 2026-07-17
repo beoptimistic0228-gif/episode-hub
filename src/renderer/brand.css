@@ -505,7 +505,7 @@ button.chip:disabled { opacity: 0.5; }
 .proposal-reason { opacity: 0.75; font-size: 0.9em; flex: 1; }
 .proposal-status.applied { color: var(--forest); font-weight: 600; }
 .proposal-status.rejected, .proposal-status.failed { color: var(--error); }
-.proposal-status.conflict { color: #b7791f; } /* 경고 앰버 — 팔레트에 warn 토큰 없음(대비 4.5:1 통과) */
+.proposal-status.conflict { color: #98620d; } /* 경고 앰버 — 팔레트에 warn 토큰 없음(흰 캔버스 대비 5.14:1, AA 통과) */
 .proposal-actions { display: flex; gap: 8px; margin-top: 8px; }
 .diff-view { max-height: 320px; overflow: auto; font-family: ui-monospace, Consolas, monospace; font-size: 12px; border: 1px solid var(--hairline, #d8d3cb); border-radius: 8px; margin: 4px 0 8px; }
 .diff-row { padding: 0 8px; white-space: pre-wrap; }

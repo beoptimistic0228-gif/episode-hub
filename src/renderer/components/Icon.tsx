@@ -3,9 +3,10 @@ import type { ReactNode } from 'react';
 /** 라인 아이콘(Lucide 파생) — 이모지 아이콘 대체용.
  *  currentColor를 상속하고 1em로 그려져 텍스트 옆에서 색·크기를 함께 따른다.
  *  의미 전달은 옆 텍스트/aria-label가 맡으므로 여기선 aria-hidden. */
-export type IconName = 'home' | 'refresh' | 'file' | 'copy' | 'close';
+export type IconName = 'home' | 'refresh' | 'file' | 'copy' | 'close' | 'message';
 
 const PATHS: Record<IconName, ReactNode> = {
+  message: <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z" />,
   home: (
     <>
       <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />

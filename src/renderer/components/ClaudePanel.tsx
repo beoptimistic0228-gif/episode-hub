@@ -59,7 +59,7 @@ export default function ClaudePanel() {
     <aside className="chat-panel">
       <div className="chat-panel-head">
         <img src={botImg} alt="" aria-hidden />
-        <span className="chat-panel-title">{title ? `💬 ${title}` : 'Claude'}</span>
+        <span className="chat-panel-title">{title ? <><Icon name="message" /> {title}</> : 'Claude'}</span>
         {activeEpisodeId && available !== false && <button className="chip" onClick={() => void newChat()} disabled={busy}>새 대화</button>}
         <button className="chip" onClick={togglePanel} title="패널 닫기" aria-label="패널 닫기"><Icon name="close" /></button>
       </div>
